@@ -7,6 +7,7 @@ import {
   clampScale,
   mapPointAtScreen,
   Point,
+  translationForCenter,
 } from "./zoomMath";
 
 interface Props {
@@ -72,7 +73,12 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   const centerRef = useRef<Point>({ x: contentWidth / 2, y: contentHeight / 2 });
 
   const panStartCenterRef = useRef<Point>({ x: 0, y: 0 });
-  const pinchLastScaleRef = useRef(1);
+  // `null` = ainda não vimos nenhum evento desta pinça; o primeiro evento
+  // define a base (assim o primeiro incremento é exatamente 1, sem pulinho).
+  const pinchLastScaleRef = useRef<number | null>(null);
+  // Canto superior esquerdo da viewport em coordenadas de página — só usado
+  // na web (ver `toViewportPoint`). Em nativo fica em (0,0) e não interfere.
+  const pinchOriginRef = useRef<Point>({ x: 0, y: 0 });
 
   const pinchRef = useRef(null);
   const panRef = useRef(null);
@@ -82,14 +88,14 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   const content = { width: contentWidth, height: contentHeight };
 
   // Aplica escala/centro já validados: atualiza os refs (fonte da verdade),
-  // projeta pra translateX/Y (mesma fórmula de sempre: pivô no centro da
-  // própria viewport) e avisa quem está ouvindo (minimapa).
+  // projeta pra translateX/Y (via `translationForCenter`, que já leva em conta
+  // que o pivô do transform é o centro da View) e avisa quem está ouvindo
+  // (minimapa).
   const commit = (scale: number, center: Point, animated: boolean) => {
     scaleRef.current = scale;
     centerRef.current = center;
 
-    const offsetX = viewportWidth / 2 - scale * center.x;
-    const offsetY = viewportHeight / 2 - scale * center.y;
+    const { x: offsetX, y: offsetY } = translationForCenter(center, scale, viewport);
 
     if (animated) {
       Animated.parallel([
@@ -139,8 +145,14 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   }));
 
   // --- Pan (arrastar com 1 dedo / mouse) ---------------------------------
-  const onPanStateChange = (event: { nativeEvent: { state: number } }) => {
-    if (event.nativeEvent.state === State.BEGAN) {
+  // Repara a referência de início do gesto quando ele entra em ACTIVE vindo
+  // de um estado não-ativo — mais confiável do que depender só de BEGAN
+  // (que em alguns casos, sobretudo na web, pode não disparar isoladamente
+  // antes do primeiro evento de movimento, deixando a referência desatualizada
+  // e causando "pulos" ao trocar de 1 pra 2 dedos e vice-versa).
+  const onPanStateChange = (event: { nativeEvent: { state: number; oldState: number } }) => {
+    const { state, oldState } = event.nativeEvent;
+    if (state === State.ACTIVE && oldState !== State.ACTIVE) {
       panStartCenterRef.current = { ...centerRef.current };
     }
   };
@@ -159,9 +171,38 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   };
 
   // --- Pinça (zoom com 2 dedos, ancorado no ponto médio dos dedos) -------
-  const onPinchStateChange = (event: { nativeEvent: { state: number } }) => {
-    if (event.nativeEvent.state === State.BEGAN) {
-      pinchLastScaleRef.current = 1;
+  // O `focalX/focalY` do gesture-handler NÃO vem em coordenadas da viewport:
+  //  - na web ele é absoluto (clientX/clientY da página);
+  //  - em nativo ele é relativo à View do próprio handler.
+  // Por isso a View que o PinchGestureHandler embrulha (lá no render) é uma
+  // View do tamanho exato da viewport e SEM transform — assim o caso nativo
+  // já chega certo — e na web descontamos aqui a posição da viewport na
+  // página. Sem essa conversão o ponto âncora caía fora do mapa, o
+  // `clampCenter` corrigia pro limite mais próximo e a pinça parecia
+  // simplesmente não funcionar (ou dar saltos).
+  const toViewportPoint = (focalX: number, focalY: number): Point => ({
+    x: focalX - pinchOriginRef.current.x,
+    y: focalY - pinchOriginRef.current.y,
+  });
+
+  const refreshPinchOrigin = () => {
+    if (Platform.OS !== "web") return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const node = containerRef.current as unknown as HTMLElement | null;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    pinchOriginRef.current = { x: rect.left, y: rect.top };
+  };
+
+  const onPinchStateChange = (event: { nativeEvent: { state: number; oldState: number } }) => {
+    const { state, oldState } = event.nativeEvent;
+    // Mede a viewport uma vez por gesto (no BEGAN), pra não forçar reflow a
+    // cada frame de pinça.
+    if (state === State.BEGAN || (state === State.ACTIVE && oldState !== State.ACTIVE)) {
+      refreshPinchOrigin();
+    }
+    if (state === State.ACTIVE && oldState !== State.ACTIVE) {
+      pinchLastScaleRef.current = null;
     }
   };
 
@@ -169,12 +210,17 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
     nativeEvent: { scale: number; focalX: number; focalY: number };
   }) => {
     const { scale: cumulativeScale, focalX, focalY } = event.nativeEvent;
-    const focal = { x: focalX, y: focalY };
+    // Rede de segurança caso o primeiro evento do gesto chegue antes do
+    // `onHandlerStateChange` — sem isso o primeiro frame usaria uma origem
+    // velha na web.
+    if (pinchLastScaleRef.current === null) refreshPinchOrigin();
+    const focal = toViewportPoint(focalX, focalY);
 
     // Fator incremental desde o último evento (o `scale` do gesture-handler
     // é cumulativo desde o início do gesto, não incremental).
-    const incremental = cumulativeScale / pinchLastScaleRef.current;
+    const incremental = cumulativeScale / (pinchLastScaleRef.current ?? cumulativeScale);
     pinchLastScaleRef.current = cumulativeScale;
+    if (!Number.isFinite(incremental) || incremental <= 0) return;
 
     const mapPointUnderFinger = mapPointAtScreen(focal, viewport, scaleRef.current, centerRef.current);
     const newScale = clampScale(scaleRef.current * incremental, minScale, maxScale);
@@ -191,6 +237,14 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const node = containerRef.current as unknown as HTMLElement | null;
     if (!node) return;
+
+    // Sem isso, o PRÓPRIO NAVEGADOR intercepta o gesto de pinça (zoom da
+    // página) e o pull-to-refresh/overscroll perto das bordas — o
+    // PinchGestureHandler nunca chega a receber o toque, e o pan parece
+    // "travar antes da hora" perto das bordas. Escopado só a este elemento,
+    // então o resto da página continua rolando/dando zoom normalmente.
+    const previousTouchAction = node.style.touchAction;
+    node.style.touchAction = "none";
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -209,7 +263,10 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
     };
 
     node.addEventListener("wheel", handleWheel, { passive: false });
-    return () => node.removeEventListener("wheel", handleWheel);
+    return () => {
+      node.removeEventListener("wheel", handleWheel);
+      node.style.touchAction = previousTouchAction;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewportWidth, viewportHeight, contentWidth, contentHeight, minScale, maxScale]);
 
@@ -221,7 +278,11 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
         onGestureEvent={onPanGestureEvent}
         onHandlerStateChange={onPanStateChange}
         minPointers={1}
-        maxPointers={2}
+        // Divisão de trabalho: 1 dedo = pan, 2 dedos = pinça. Quando o
+        // segundo dedo encosta, o gesture-handler rebaseia a translação antes
+        // de cancelar este handler, então trocar 1 <-> 2 dedos não dá salto —
+        // e ao voltar pra 1 dedo o `onPanStateChange` recalibra a referência.
+        maxPointers={1}
       >
         <Animated.View style={styles.flex}>
           <PinchGestureHandler
@@ -230,19 +291,25 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
             onGestureEvent={onPinchGestureEvent}
             onHandlerStateChange={onPinchStateChange}
           >
-            <Animated.View
-              style={[
-                styles.flex,
-                {
-                  transform: [
-                    { translateX: translateXAnim },
-                    { translateY: translateYAnim },
-                    { scale: scaleAnim },
-                  ],
-                },
-              ]}
-            >
-              {children}
+            {/* Esta View (a View DO handler) precisa ter exatamente o tamanho
+                da viewport e ficar SEM transform: é em relação a ela que o
+                gesture-handler reporta `focalX/focalY` em nativo. O transform
+                mora na View de dentro. */}
+            <Animated.View style={styles.flex}>
+              <Animated.View
+                style={[
+                  styles.flex,
+                  {
+                    transform: [
+                      { translateX: translateXAnim },
+                      { translateY: translateYAnim },
+                      { scale: scaleAnim },
+                    ],
+                  },
+                ]}
+              >
+                {children}
+              </Animated.View>
             </Animated.View>
           </PinchGestureHandler>
         </Animated.View>

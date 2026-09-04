@@ -25,8 +25,15 @@ const PLANTA_IMAGE = require("../../../assets/planta-salao.png");
 // o oposto do que fazíamos antes (renderizar do tamanho da viewport e
 // escalar pra CIMA ao dar zoom) — escalar uma imagem pequena pra cima é o
 // que causava o borrão ao dar zoom, tanto no mobile quanto no desktop.
-const PLANTA_NATIVE_WIDTH = 2350;
-const PLANTA_NATIVE_HEIGHT = 820;
+//
+// O PNG é gerado direto do PDF VETORIAL da planta (PlantaSalãoAbrasel), no
+// mesmo recorte de sempre — página 1, x=66,5 y=200,0 w=1566,96 h=546,77 pt —
+// só que a 3x da resolução antiga (era 2350x820). Como o recorte é idêntico,
+// as coordenadas normalizadas dos pins (0..1) continuam valendo sem mexer em
+// nada. Se um dia a memória apertar (7050x2460 decodifica pra ~69 MB), dá pra
+// reexportar o MESMO recorte a 4700x1640 e só trocar os dois números abaixo.
+const PLANTA_NATIVE_WIDTH = 7050;
+const PLANTA_NATIVE_HEIGHT = 2460;
 // Quanto além do "cobrir a tela" (zoom mínimo) o usuário pode ampliar.
 const MAX_ZOOM_MULTIPLIER = 4;
 

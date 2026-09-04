@@ -8,9 +8,8 @@
 //   screenX = viewportWidth/2  + scale * (mapX - center.x)
 //   screenY = viewportHeight/2 + scale * (mapY - center.y)
 //
-// (equivalente ao `transform: translate(offset) scale(scale)` com pivô no
-// centro da própria viewport, que é o comportamento padrão do CSS — não
-// precisa de transformOrigin customizado.)
+// Quem transforma isso em `translateX/translateY` é `translationForCenter`
+// lá embaixo — e é lá que mora a sutileza do pivô do transform.
 
 export interface Point {
   x: number;
@@ -64,6 +63,30 @@ export function clampCenter(
       : Math.min(Math.max(center.y, halfVisibleH), content.height - halfVisibleH);
 
   return { x, y };
+}
+
+// `translateX/translateY` que faz a projeção lá de cima valer de verdade.
+//
+// ATENÇÃO ao pivô: a View transformada tem exatamente o tamanho da viewport,
+// e tanto o React Native quanto o CSS pivotam transforms no CENTRO da própria
+// View — não no canto superior esquerdo. Ou seja, o que é realmente pintado é
+//
+//   screen = O + T + scale * (p - O),  com O = (viewportWidth/2, viewportHeight/2)
+//
+// Igualando isso à projeção desejada sobra `T = scale * (O - center)`. Usar
+// `T = O - scale * center` (a fórmula do pivô no canto, que é o que estava
+// aqui antes) desloca tudo em `(O)(1 - scale)`: no zoom mínimo isso é o que
+// abria faixa vazia numa borda e tornava o outro lado do mapa inalcançável,
+// porque o clamp trava o MODELO, e o modelo não batia com o que era pintado.
+export function translationForCenter(
+  center: Point,
+  scale: number,
+  viewport: ViewportSize
+): Point {
+  return {
+    x: scale * (viewport.width / 2 - center.x),
+    y: scale * (viewport.height / 2 - center.y),
+  };
 }
 
 // Ponto do conteúdo que está, agora, sob a coordenada de tela (screenX,

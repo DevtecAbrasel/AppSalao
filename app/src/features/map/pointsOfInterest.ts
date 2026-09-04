@@ -1,7 +1,8 @@
 // Estandes/ativações voltados ao público que não têm palestra com horário
 // marcado (por isso não vêm da tabela de eventos) — só um pin informativo
-// com o nome do local. Coordenadas conferidas visualmente na planta real
-// (app/assets/planta-salao.png, 2350x820).
+// com o nome do local. Coordenadas NORMALIZADAS (0..1) sobre a planta real
+// (app/assets/planta-salao.png) — por serem normalizadas, continuam valendo
+// mesmo quando a resolução do arquivo muda, desde que o RECORTE seja o mesmo.
 //
 // Observação: não encontramos "Mesa de Compradores" nem "Área VIP" com
 // rótulo nessa planta (a documentação do estande cita que a Mesa de
