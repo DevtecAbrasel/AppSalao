@@ -19,7 +19,7 @@ cp .env.example .env
 Edite `.env`:
 - `DATABASE_URL`: string de conexão MySQL (Railway ou local).
 - `APP_API_KEY`: chave que o app mobile vai usar (header `x-api-key`).
-- `ADMIN_API_KEY`: chave separada para as rotas administrativas (header `x-admin-key`), usada para cadastrar/editar/remover eventos sem mexer direto no banco.
+- As rotas administrativas **não usam chave compartilhada**: exigem login de uma conta com papel `ADMIN` (ver 1.4).
 - `JWT_SECRET`: segredo usado para assinar os tokens de login (gere um valor aleatório longo, ex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
 
 ### 1.2 Instalar, migrar e popular com a programação
@@ -58,11 +58,35 @@ curl http://localhost:3333/events -H "x-api-key: SUA_APP_API_KEY"
 | POST   | `/favorites`             | Bearer token  | `{ event_id }` — favorita pro usuário do token |
 | DELETE | `/favorites`             | Bearer token  | `{ event_id }`                                 |
 | GET    | `/favorites`             | Bearer token  | Eventos favoritados pelo usuário do token      |
-| POST   | `/events`                | `x-admin-key` | Cria evento                                    |
-| PUT    | `/events/:id`            | `x-admin-key` | Edita evento                                   |
-| DELETE | `/events/:id`            | `x-admin-key` | Remove evento                                  |
+| GET    | `/notifications`         | Bearer token  | Avisos do usuário + `unreadCount`              |
+| POST   | `/notifications/:id/read`| Bearer token  | Marca um aviso como lido                       |
+| POST   | `/notifications/read-all`| Bearer token  | Marca todos como lidos                         |
+| POST   | `/events`                | Bearer **ADMIN** | Cria evento                                 |
+| PUT    | `/events/:id`            | Bearer **ADMIN** | Edita evento                                |
+| DELETE | `/events/:id`            | Bearer **ADMIN** | Remove evento                               |
+| GET    | `/admin/users`           | Bearer **ADMIN** | Lista as contas cadastradas                 |
+| DELETE | `/admin/users/:id`       | Bearer **ADMIN** | Remove uma conta                            |
 
 O app exige login (e-mail/senha) para tudo — não há mais o modo anônimo por `device_id` que existia antes. Crie uma conta pela própria tela de cadastro do app.
+
+### 1.4 Conta de administrador
+
+O papel fica na coluna `users.role` (`USER` ou `ADMIN`). Rotas marcadas como **ADMIN**
+acima passam por `requireAuth` + `requireAdmin`, que relê o papel no banco a cada
+requisição — rebaixar alguém tem efeito imediato, sem esperar o token de 30 dias expirar.
+Um usuário comum que monte a requisição na mão recebe **403**.
+
+Para criar ou promover um administrador (as credenciais vêm do ambiente, nunca do
+código-fonte):
+
+```bash
+cd api
+ADMIN_EMAIL=voce@exemplo.com ADMIN_PASSWORD='senha-forte' npm run admin:create
+```
+
+Se a conta já existir, ela é promovida (informe `ADMIN_PASSWORD` para trocar a senha
+também). Feito isso, basta entrar normalmente no app com esse e-mail: a aba
+**⚙️ Admin** aparece para contas com o papel.
 
 ### 1.5 Deploy (Railway) — passo manual
 
@@ -70,7 +94,7 @@ Não incluído automaticamente nesta sessão (requer login na sua conta):
 
 1. Crie um projeto no [Railway](https://railway.app), adicione um plugin MySQL.
 2. Adicione um serviço apontando para a pasta `/api` deste repositório (deploy via GitHub) ou rode `railway up` a partir de `/api` com o Railway CLI já logado.
-3. Configure as variáveis de ambiente do serviço (`DATABASE_URL` já vem pronta do plugin MySQL; adicione `APP_API_KEY` e `ADMIN_API_KEY`).
+3. Configure as variáveis de ambiente do serviço (`DATABASE_URL` já vem pronta do plugin MySQL; adicione `APP_API_KEY` e `JWT_SECRET`).
 4. Rode a migration em produção: `railway run npx prisma migrate deploy`.
 
 ## 2. App mobile (`/app`)

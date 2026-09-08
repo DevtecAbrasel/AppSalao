@@ -19,6 +19,11 @@ export class ApiError extends Error {
     return new ApiError(401, message);
   }
 
+  // 401 = "não sei quem você é"; 403 = "sei quem você é e não pode".
+  static forbidden(message: string) {
+    return new ApiError(403, message);
+  }
+
   static conflict(message: string) {
     return new ApiError(409, message);
   }

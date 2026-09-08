@@ -26,10 +26,20 @@ export type MapStackParamList = {
   Notifications: undefined;
 };
 
+// Painel administrativo: separado da experiência normal do app, numa aba
+// própria que só existe para contas com papel ADMIN.
+export type AdminStackParamList = {
+  AdminHome: undefined;
+  AdminEvents: undefined;
+  AdminEventForm: { eventId?: string };
+  AdminUsers: undefined;
+};
+
 export type RootTabParamList = {
   Agenda: NavigatorScreenParams<AgendaStackParamList>;
   Favoritos: NavigatorScreenParams<FavoritesStackParamList>;
   Mapa: NavigatorScreenParams<MapStackParamList>;
+  Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 
 declare global {

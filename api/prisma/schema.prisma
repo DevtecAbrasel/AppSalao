@@ -29,10 +29,20 @@ model Event {
   @@map("events")
 }
 
+// Dois níveis, só: quem usa o app e quem administra o evento. O papel mora
+// no banco (e não num token ou numa lista de e-mails no .env) pra que revogar
+// um admin tenha efeito imediato — o middleware relê o papel a cada requisição
+// em vez de confiar no que estava assinado no JWT.
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String   @map("password_hash")
+  role         UserRole @default(USER)
   createdAt    DateTime @default(now()) @map("created_at")
 
   favorites     UserFavorite[]

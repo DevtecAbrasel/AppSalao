@@ -23,7 +23,7 @@ authRouter.post(
 
     res.status(201).json({
       token: signToken(user.id),
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, role: user.role },
     });
   })
 );
@@ -40,7 +40,7 @@ authRouter.post(
 
     res.json({
       token: signToken(user.id),
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, role: user.role },
     });
   })
 );
@@ -54,6 +54,6 @@ authRouter.get(
       throw ApiError.notFound("Usuário não encontrado");
     }
 
-    res.json({ id: user.id, email: user.email });
+    res.json({ id: user.id, email: user.email, role: user.role });
   })
 );
