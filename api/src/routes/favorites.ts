@@ -34,13 +34,23 @@ favoritesRouter.delete(
   asyncHandler(async (req, res) => {
     const { event_id } = favoriteBodySchema.parse(req.body);
 
-    await prisma.userFavorite
-      .delete({
-        where: { userId_eventId: { userId: req.userId, eventId: event_id } },
-      })
-      .catch(() => {
-        // Já não existia — remoção é idempotente do ponto de vista do cliente.
-      });
+    // Desfavoritar leva junto os avisos daquela palestra: deixá-los no
+    // sininho seria lembrar de algo que o usuário disse não querer mais
+    // acompanhar. `deleteMany` nos dois é idempotente por natureza — remover
+    // o que já não existe é um no-op, que é o contrato esperado pelo cliente.
+    //
+    // Efeito colateral proposital: como a linha de Notification é também o
+    // livro-caixa da deduplicação, apagá-la "rearma" o aviso. Se o usuário
+    // favoritar de novo e o horário ainda estiver na janela, ele volta a ser
+    // avisado — que é o comportamento desejado para uma ação explícita dele.
+    await prisma.$transaction([
+      prisma.userFavorite.deleteMany({
+        where: { userId: req.userId, eventId: event_id },
+      }),
+      prisma.notification.deleteMany({
+        where: { userId: req.userId, eventId: event_id },
+      }),
+    ]);
 
     res.status(204).send();
   })

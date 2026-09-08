@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { EventItem } from "../../types";
 import { addFavorite, fetchFavorites, removeFavorite } from "./api";
+import { useNotificationsStore } from "../notifications/store";
 
 interface FavoritesState {
   favorites: EventItem[];
@@ -59,6 +60,9 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     try {
       if (isCurrentlyFavorite) {
         await removeFavorite(event.id);
+        // O servidor apaga os avisos desta palestra junto com o favorito;
+        // refletimos isso no sininho na hora, sem esperar o próximo polling.
+        useNotificationsStore.getState().dropForEvent(event.id);
       } else {
         await addFavorite(event.id);
       }

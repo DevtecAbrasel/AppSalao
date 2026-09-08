@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { CATCH_UP_WINDOW_MINUTES, REMINDER_OFFSETS_MINUTES } from "../lib/reminderOffsets";
+import { REMINDER_OFFSETS_MINUTES } from "../lib/reminderOffsets";
 
 const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
@@ -15,27 +15,60 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 type ReminderEvent = { title: string; locationName: string; startTime: Date };
-type ReminderOffset = (typeof REMINDER_OFFSETS_MINUTES)[number];
+
+const dayFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" });
+
+function mesmoDiaEmBrasilia(a: Date, b: Date): boolean {
+  return dayFormatter.format(a) === dayFormatter.format(b);
+}
 
 // Conteúdo exibido no sininho e no toast, sempre com os dados reais do
-// evento. Para o aviso de 1 dia antes o horário sozinho seria ambíguo, então
-// só nesse caso a data entra junto.
-export function buildNotificationContent(offset: ReminderOffset, event: ReminderEvent) {
+// evento. O título vem do tempo que REALMENTE falta, não do limiar que
+// disparou: com a regra do "limiar mais específico", uma palestra daqui a 5
+// horas cai no limiar de 24h, e chamá-la de "amanhã" seria mentira.
+//
+// A data só entra no horário quando a palestra é em outro dia — no mesmo dia
+// "Horário: 14:00" basta e fica mais limpo.
+export function buildNotificationContent(
+  offset: number,
+  event: ReminderEvent,
+  now: Date = new Date()
+) {
+  const noMesmoDia = mesmoDiaEmBrasilia(event.startTime, now);
   const time = timeFormatter.format(event.startTime);
-  const when =
-    offset.minutesBefore >= 24 * 60 ? `${dateFormatter.format(event.startTime)} às ${time}` : time;
+  const when = noMesmoDia ? time : `${dateFormatter.format(event.startTime)} às ${time}`;
+
+  const title =
+    offset >= 24 * 60
+      ? noMesmoDia
+        ? "⏰ Sua palestra é hoje!"
+        : "📅 Amanhã tem palestra!"
+      : "⏰ Sua palestra está chegando!";
 
   return {
-    title: offset.title,
+    title,
     message: `Palestra: ${event.title}\nHorário: ${when}\nLocal: ${event.locationName}`,
   };
 }
 
-// Roda a cada minuto (ver index.ts): procura favoritos cujo evento está
-// prestes a começar num dos intervalos de aviso e cria a notificação in-app.
-// Cada combinação (usuário, evento, intervalo) só existe uma vez, garantido
-// pela constraint única de Notification — é o próprio create que falha que
-// impede o aviso repetido, sem precisar consultar antes.
+// O aviso mais específico já vencido: entre os intervalos cujo limiar a
+// palestra já cruzou, o de menor `minutesBefore`.
+//
+// É isso que faz "favoritei agora uma palestra que começa em 10 minutos"
+// avisar na hora — e avisar UMA vez, com o texto certo ("está chegando"), em
+// vez de despejar de uma só vez os três avisos cujos limiares já passaram.
+// Também cobre o servidor ter ficado fora do ar: ao voltar, ele manda o aviso
+// correspondente ao tempo que REALMENTE falta, não um "amanhã tem" atrasado.
+export function mostSpecificDueOffset(minutesUntilStart: number): number | null {
+  const vencidos = REMINDER_OFFSETS_MINUTES.filter((offset) => minutesUntilStart <= offset);
+  return vencidos.length === 0 ? null : Math.min(...vencidos);
+}
+
+// Roda a cada minuto (ver index.ts): procura favoritos cujo evento já entrou
+// num intervalo de aviso e cria a notificação in-app. Cada combinação
+// (usuário, evento, intervalo) só existe uma vez, garantido pela constraint
+// única de Notification — é o próprio create que falha que impede o aviso
+// repetido, sem precisar consultar antes.
 export async function checkAndCreateEventReminders(): Promise<number> {
   const now = Date.now();
   let created = 0;
@@ -48,29 +81,25 @@ export async function checkAndCreateEventReminders(): Promise<number> {
     const minutesUntilStart = (favorite.event.startTime.getTime() - now) / 60_000;
     if (minutesUntilStart <= 0) continue;
 
-    for (const offset of REMINDER_OFFSETS_MINUTES) {
-      const isDue =
-        minutesUntilStart <= offset.minutesBefore &&
-        minutesUntilStart > offset.minutesBefore - CATCH_UP_WINDOW_MINUTES;
-      if (!isDue) continue;
+    const offset = mostSpecificDueOffset(minutesUntilStart);
+    if (offset === null) continue; // ainda longe demais
 
-      const content = buildNotificationContent(offset, favorite.event);
+    const content = buildNotificationContent(offset, favorite.event, new Date(now));
 
-      try {
-        await prisma.notification.create({
-          data: {
-            userId: favorite.userId,
-            eventId: favorite.eventId,
-            minutesBefore: offset.minutesBefore,
-            type: "event_reminder",
-            title: content.title,
-            message: content.message,
-          },
-        });
-        created++;
-      } catch {
-        continue; // já existia — nada a fazer
-      }
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: favorite.userId,
+          eventId: favorite.eventId,
+          minutesBefore: offset,
+          type: "event_reminder",
+          title: content.title,
+          message: content.message,
+        },
+      });
+      created++;
+    } catch {
+      continue; // já existia — nada a fazer
     }
   }
 

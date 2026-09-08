@@ -23,6 +23,8 @@ interface NotificationsState {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   dismissToast: () => void;
+  /** Remove localmente os avisos de uma palestra que deixou de ser favorita. */
+  dropForEvent: (eventId: string) => void;
   startPolling: () => void;
   stopPolling: () => void;
   reset: () => void;
@@ -121,6 +123,26 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   },
 
   dismissToast: () => set({ toast: null }),
+
+  // Espelha o que o servidor faz ao desfavoritar (DELETE /favorites também
+  // apaga as notificações da palestra). Aplicamos na hora pra o sininho não
+  // ficar mostrando um aviso que já não existe até o próximo polling.
+  //
+  // Os ids removidos saem de `seenIds`: se a palestra for favoritada de novo
+  // e o servidor recriar o aviso, ele volta a contar como novidade e o toast
+  // aparece — em vez de ser silenciosamente engolido por já ter sido visto.
+  dropForEvent: (eventId: string) => {
+    const restantes = get().items.filter((n) => n.event?.id !== eventId);
+    for (const n of get().items) {
+      if (n.event?.id === eventId) seenIds.delete(n.id);
+    }
+
+    set({
+      items: restantes,
+      unreadCount: restantes.filter((n) => n.readAt === null).length,
+      toast: get().toast?.event?.id === eventId ? null : get().toast,
+    });
+  },
 
   startPolling: () => {
     if (pollTimer) return; // já rodando
