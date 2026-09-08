@@ -21,7 +21,8 @@ model Event {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  favorites UserFavorite[]
+  favorites     UserFavorite[]
+  notifications Notification[]
 
   @@index([startTime])
   @@index([category])
@@ -34,7 +35,8 @@ model User {
   passwordHash String   @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  favorites UserFavorite[]
+  favorites     UserFavorite[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -53,15 +55,31 @@ model UserFavorite {
   @@map("user_favorites")
 }
 
-// Registra cada lembrete por e-mail já disparado, pra a checagem periódica
-// (a cada minuto) nunca mandar o mesmo aviso duas vezes.
-model SentEmailReminder {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  eventId       String   @map("event_id")
-  minutesBefore Int      @map("minutes_before")
-  sentAt        DateTime @default(now()) @map("sent_at")
+// Notificação in-app. Esta tabela acumula os dois papéis que antes eram
+// separados: é o REGISTRO que o usuário vê no sininho e, ao mesmo tempo, o
+// livro-caixa que impede aviso repetido — o unique abaixo é o que garante
+// que a varredura de 1 em 1 minuto nunca crie a mesma notificação duas
+// vezes (o create falha e a varredura segue em frente).
+//
+// `minutesBefore` guarda QUAL aviso é (1 dia / 1 hora / 15 min antes), e é
+// justamente por fazer parte da chave única que o mesmo evento pode gerar
+// os três avisos sem que nenhum deles se repita.
+model Notification {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  eventId       String    @map("event_id")
+  type          String    @default("event_reminder")
+  minutesBefore Int       @map("minutes_before")
+  title         String
+  message       String    @db.Text
+  readAt        DateTime? @map("read_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId, minutesBefore])
-  @@map("sent_email_reminders")
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

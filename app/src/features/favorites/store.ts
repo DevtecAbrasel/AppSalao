@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { EventItem } from "../../types";
 import { addFavorite, fetchFavorites, removeFavorite } from "./api";
-import { cancelNotificationsForEvent, scheduleNotificationsForEvent } from "./notifications";
 
 interface FavoritesState {
   favorites: EventItem[];
@@ -54,13 +53,14 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
 
     set({ favoriteIds: nextIds, favorites: nextFavorites });
 
+    // O aviso de "sua palestra está chegando" é criado pelo servidor a partir
+    // do favorito (ver api/src/services/notifications.ts) — favoritar aqui não
+    // agenda nada no device nem pede permissão de notificação.
     try {
       if (isCurrentlyFavorite) {
         await removeFavorite(event.id);
-        await cancelNotificationsForEvent(event.id);
       } else {
         await addFavorite(event.id);
-        await scheduleNotificationsForEvent(event);
       }
     } catch (err) {
       // Reverte a mudança otimista em caso de falha na API.
