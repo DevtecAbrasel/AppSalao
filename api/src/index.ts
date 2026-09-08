@@ -6,8 +6,9 @@ import { healthRouter } from "./routes/health";
 import { eventsRouter } from "./routes/events";
 import { favoritesRouter } from "./routes/favorites";
 import { authRouter } from "./routes/auth";
+import { notificationsRouter } from "./routes/notifications";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import { checkAndSendEmailReminders } from "./services/emailReminders";
+import { checkAndCreateEventReminders } from "./services/notifications";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(healthRouter);
 app.use(eventsRouter);
 app.use(favoritesRouter);
 app.use(authRouter);
+app.use(notificationsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -27,10 +29,12 @@ app.listen(env.PORT, () => {
   console.log(`API Salão Abrasel rodando na porta ${env.PORT}`);
 });
 
-// Best-effort, igual às notificações locais do app: uma falha aqui nunca
-// deve derrubar a API.
+// Varredura periódica que cria as notificações in-app dos favoritos cujo
+// horário está chegando. Best-effort: uma falha aqui nunca deve derrubar a
+// API — na pior das hipóteses o aviso sai no minuto seguinte (a janela de
+// catch-up em reminderOffsets.ts existe justamente pra isso).
 setInterval(() => {
-  checkAndSendEmailReminders().catch((err) => {
-    console.warn("Falha ao checar lembretes por e-mail:", err);
+  checkAndCreateEventReminders().catch((err) => {
+    console.warn("Falha ao checar lembretes de eventos:", err);
   });
 }, 60_000);

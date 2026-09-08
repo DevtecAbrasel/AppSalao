@@ -1,12 +1,11 @@
-// Mesmos intervalos usados nas notificações locais do app
-// (app/src/constants/notificationOffsets.ts) — mantenha os dois em sincronia.
-export const REMINDER_OFFSETS_MINUTES = [
-  { minutesBefore: 24 * 60, label: "Amanhã tem" },
-  { minutesBefore: 60, label: "Daqui a 1 hora" },
-  { minutesBefore: 15, label: "Daqui a 15 minutos" },
-];
-
-// Se o servidor ficar fora do ar e perder o instante exato de um aviso, ainda
-// dá pra mandar com atraso dentro dessa janela; passado isso, esse aviso em
-// específico é considerado perdido (não manda mais tarde, fora de contexto).
-export const CATCH_UP_WINDOW_MINUTES = 5;
+// Quanto antes do início de uma palestra favoritada o usuário deve ser
+// avisado, em minutos. O valor escolhido vira o `minutesBefore` da
+// Notification e faz parte da chave única, então cada limiar gera no máximo
+// um aviso por usuário/evento.
+//
+// A varredura usa sempre o limiar MAIS ESPECÍFICO já vencido (o menor cujo
+// tempo restante já é igual ou inferior). O TEXTO do aviso não sai daqui —
+// é derivado do tempo que realmente falta (ver buildNotificationContent),
+// senão uma palestra daqui a 5 horas cairia no limiar de 24h e seria
+// anunciada como "amanhã".
+export const REMINDER_OFFSETS_MINUTES = [24 * 60, 60, 15];

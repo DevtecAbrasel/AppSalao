@@ -4,11 +4,12 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer, NavigationContainerRef } from "@react-navigation/native";
-import * as Notifications from "expo-notifications";
 import { RootTabs } from "./src/navigation/RootTabs";
 import { AuthStackNavigator } from "./src/navigation/AuthStack";
 import { RootTabParamList } from "./src/navigation/types";
 import { useAuthStore } from "./src/features/auth/store";
+import { useNotificationsStore } from "./src/features/notifications/store";
+import { NotificationToast } from "./src/features/notifications/NotificationToast";
 import { colors } from "./src/constants/theme";
 
 export default function App() {
@@ -20,23 +21,20 @@ export default function App() {
     hydrate();
   }, [hydrate]);
 
+  // As notificações in-app só existem para um usuário logado: o polling liga
+  // ao autenticar e desliga (limpando o estado) ao sair, pra não vazar aviso
+  // de uma conta para a próxima.
   useEffect(() => {
-    // Toque numa notificação de evento favoritado leva direto ao detalhe.
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const eventId = response.notification.request.content.data?.eventId as
-        | string
-        | undefined;
+    const { startPolling, stopPolling, reset } = useNotificationsStore.getState();
 
-      if (eventId) {
-        navigationRef.current?.navigate("Agenda", {
-          screen: "EventDetail",
-          params: { eventId },
-        });
-      }
-    });
+    if (authStatus === "authenticated") {
+      startPolling();
+      return () => stopPolling();
+    }
 
-    return () => subscription.remove();
-  }, []);
+    stopPolling();
+    reset();
+  }, [authStatus]);
 
   if (authStatus === "hydrating") {
     return (
@@ -52,6 +50,20 @@ export default function App() {
         <NavigationContainer ref={navigationRef}>
           {authStatus === "authenticated" ? <RootTabs /> : <AuthStackNavigator />}
         </NavigationContainer>
+
+        {/* Fora do NavigationContainer, mas por cima dele: o toast flutua
+            sobre qualquer tela sem entrar na pilha de navegação. */}
+        {authStatus === "authenticated" && (
+          <NotificationToast
+            onOpenEvent={(eventId) =>
+              navigationRef.current?.navigate("Agenda", {
+                screen: "EventDetail",
+                params: { eventId },
+              })
+            }
+          />
+        )}
+
         <StatusBar style="auto" />
       </SafeAreaProvider>
     </GestureHandlerRootView>
