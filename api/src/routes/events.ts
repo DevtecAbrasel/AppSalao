@@ -2,7 +2,8 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { asyncHandler } from "../lib/asyncHandler";
 import { ApiError } from "../lib/ApiError";
-import { requireAdminKey, requireAppKey } from "../middleware/apiKey";
+import { requireAppKey } from "../middleware/apiKey";
+import { requireAdmin, requireAuth } from "../middleware/auth";
 import { createEventSchema, eventListQuerySchema, updateEventSchema } from "../schemas/event";
 
 export const eventsRouter = Router();
@@ -60,7 +61,8 @@ eventsRouter.get(
 
 eventsRouter.post(
   "/events",
-  requireAdminKey,
+  requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = createEventSchema.parse(req.body);
 
@@ -78,7 +80,8 @@ eventsRouter.post(
 
 eventsRouter.put(
   "/events/:id",
-  requireAdminKey,
+  requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = updateEventSchema.parse(req.body);
 
@@ -102,7 +105,8 @@ eventsRouter.put(
 
 eventsRouter.delete(
   "/events/:id",
-  requireAdminKey,
+  requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const existing = await prisma.event.findUnique({ where: { id: req.params.id } });
     if (!existing) {

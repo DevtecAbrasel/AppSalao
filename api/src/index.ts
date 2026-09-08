@@ -7,6 +7,7 @@ import { eventsRouter } from "./routes/events";
 import { favoritesRouter } from "./routes/favorites";
 import { authRouter } from "./routes/auth";
 import { notificationsRouter } from "./routes/notifications";
+import { usersRouter } from "./routes/users";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { checkAndCreateEventReminders } from "./services/notifications";
 
@@ -21,6 +22,7 @@ app.use(eventsRouter);
 app.use(favoritesRouter);
 app.use(authRouter);
 app.use(notificationsRouter);
+app.use(usersRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

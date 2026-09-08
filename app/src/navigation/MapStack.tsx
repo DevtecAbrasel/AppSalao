@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MapScreen } from "../features/map/MapScreen";
 import { EventDetailScreen } from "../features/events/EventDetailScreen";
 import { NotificationsScreen } from "../features/notifications/NotificationsScreen";
-import { NotificationBell } from "../features/notifications/NotificationBell";
+import { HeaderActions } from "./HeaderActions";
 import { colors } from "../constants/theme";
 import { MapStackParamList } from "./types";
 
@@ -19,7 +19,7 @@ export function MapStackNavigator() {
       <Stack.Screen
         name="MapView"
         component={MapScreen}
-        options={{ title: "Mapa do Evento", headerRight: () => <NotificationBell /> }}
+        options={{ title: "Mapa do Evento", headerRight: () => <HeaderActions /> }}
       />
       <Stack.Screen
         name="EventDetail"

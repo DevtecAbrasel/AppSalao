@@ -1,8 +1,12 @@
 import { api } from "../../lib/apiClient";
 
+export type UserRole = "USER" | "ADMIN";
+
 export interface AuthUser {
   id: string;
   email: string;
+  /** Contas antigas em cache podem não ter o campo — tratar ausente como USER. */
+  role?: UserRole;
 }
 
 export interface AuthResponse {
