@@ -1,11 +1,14 @@
 # Salão Abrasel — App
 
-Monorepo com o app mobile (Expo/React Native) e a API (Node/Express/Prisma/PostgreSQL) do app de agenda do Salão Abrasel.
+Monorepo com o app web (Expo/React Native Web) e a API (Node/Express/Prisma/PostgreSQL) do app de agenda do Salão Abrasel.
 
 ```
-/app   → Expo (React Native + TypeScript) — app mobile
+/app   → Expo (React Native Web + TypeScript) — aplicação web
 /api   → Node + Express + TypeScript + Prisma — API própria
 ```
+
+O front usa React Native via Expo, mas **a entrega é web**: roda no navegador
+e é publicado como site estático. Não há build para App Store / Play Store.
 
 ## 1. API (`/api`)
 
@@ -18,7 +21,7 @@ cp .env.example .env
 
 Edite `.env`:
 - `DATABASE_URL`: string de conexão PostgreSQL (Railway ou local).
-- `APP_API_KEY`: chave que o app mobile vai usar (header `x-api-key`).
+- `APP_API_KEY`: chave que o app web vai usar (header `x-api-key`).
 - As rotas administrativas **não usam chave compartilhada**: exigem login de uma conta com papel `ADMIN` (ver 1.4).
 - `JWT_SECRET`: segredo usado para assinar os tokens de login (gere um valor aleatório longo, ex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
 
@@ -97,7 +100,7 @@ Não incluído automaticamente nesta sessão (requer login na sua conta):
 3. Configure as variáveis de ambiente do serviço (`DATABASE_URL` já vem pronta do plugin PostgreSQL; adicione `APP_API_KEY` e `JWT_SECRET`).
 4. Rode a migration em produção: `railway run npx prisma migrate deploy`.
 
-## 2. App mobile (`/app`)
+## 2. App web (`/app`)
 
 ### 2.1 Configurar ambiente
 
@@ -107,33 +110,34 @@ cp .env.example .env
 ```
 
 Edite `.env`:
-- `EXPO_PUBLIC_API_BASE_URL`: URL da API (em dev, use o IP da sua máquina na rede local se for testar em device físico — `localhost` só funciona em emulador/simulador).
+- `EXPO_PUBLIC_API_BASE_URL`: URL da API (em dev local, `http://localhost:3333`).
 - `EXPO_PUBLIC_API_KEY`: mesma chave configurada em `APP_API_KEY` na API.
 
 ### 2.2 Rodar em desenvolvimento
 
 ```bash
 npm install
-npx expo start
+npx expo start --web
 ```
 
-Abra no Expo Go (Android/iOS) ou em um emulador.
+Abre no navegador. O app é entregue como **aplicação web** — não há build nativo
+para as lojas.
 
-### 2.3 Build de produção (EAS) — passo manual
-
-Requer login (`eas login`) na sua conta Expo:
+### 2.3 Build de produção (web)
 
 ```bash
-npm install -g eas-cli
-eas login
-eas build:configure
-eas build --platform android
-eas build --platform ios
+npx expo export --platform web
 ```
+
+Gera a pasta estática `dist/`, que pode ser servida por qualquer host de site
+estático. A URL da API vem de `EXPO_PUBLIC_API_BASE_URL` **no momento do
+build** (variáveis `EXPO_PUBLIC_*` são embutidas no bundle), então aponte para
+a API de produção antes de exportar — trocar o `.env` depois não altera o que
+já foi gerado.
 
 ## 3. Pendências / próximos passos
 
 - **Planta do local**: o mapa usa um placeholder ilustrativo (`src/features/map/PlantaPlaceholder.tsx`). Assim que a planta real (PNG/SVG) for enviada, trocar por um `<Image>` do mesmo componente.
 - **Identidade visual Abrasel**: `src/constants/theme.ts` usa uma paleta neutra placeholder. Trocar pelas cores/logo oficiais quando fornecidos.
-- **Deploy Railway e build EAS**: passos manuais descritos acima (exigem login nas suas contas).
+- **Deploy da API (Railway)**: passo manual descrito acima (exige login na sua conta).
 - **Recuperação de senha / verificação de e-mail**: não implementado (exigiria infra de envio de e-mail) — fora do escopo atual.
