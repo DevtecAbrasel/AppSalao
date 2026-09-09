@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+  Template do HTML gerado por `expo export --platform web`.
+
+  Por que existe: o caminho oficial da Expo para mexer no <head> é o
+  `+html.tsx`, que exige Expo Router — este app usa React Navigation. A Expo
+  também aceita um `public/index.html` como template e injeta o <script> do
+  bundle e o <link> do favicon nele, que é o que acontece aqui.
+
+  O reset abaixo é o mesmo que a Expo gera por padrão (recomendação do
+  react-native-web); mexer nele quebra a altura da tela.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    <title>Salão Abrasel</title>
+    <meta
+      name="description"
+      content="Programação, favoritos, avisos e mapa do Salão Abrasel 2026."
+    />
+
+    <!-- Instalação na tela inicial. O manifesto atende Android/Chrome e,
+         desde o iOS 16.4, também o Safari; as metas "apple-" continuam
+         necessárias para as versões anteriores do iOS. -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#15243C" />
+
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- "default" deixa a barra de status opaca com texto escuro. Usar
+         "black-translucent" faria o conteúdo subir por baixo da barra, o que
+         exigiria tratar safe area em todas as telas. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Salão Abrasel" />
+
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>Você precisa habilitar o JavaScript para usar este app.</noscript>
+    <div id="root"></div>
+
+    <script>
+      // Registro fora do bundle: assim o service worker não entra no grafo de
+      // módulos do app e o registro acontece mesmo se o bundle demorar.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {
+            // Falha aqui só custa o botão de instalar no Android; o app
+            // funciona igual, então não vale interromper o carregamento.
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
