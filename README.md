@@ -1,6 +1,6 @@
 # Salão Abrasel — App
 
-Monorepo com o app mobile (Expo/React Native) e a API (Node/Express/Prisma/MySQL) do app de agenda do Salão Abrasel.
+Monorepo com o app mobile (Expo/React Native) e a API (Node/Express/Prisma/PostgreSQL) do app de agenda do Salão Abrasel.
 
 ```
 /app   → Expo (React Native + TypeScript) — app mobile
@@ -17,7 +17,7 @@ cp .env.example .env
 ```
 
 Edite `.env`:
-- `DATABASE_URL`: string de conexão MySQL (Railway ou local).
+- `DATABASE_URL`: string de conexão PostgreSQL (Railway ou local).
 - `APP_API_KEY`: chave que o app mobile vai usar (header `x-api-key`).
 - As rotas administrativas **não usam chave compartilhada**: exigem login de uma conta com papel `ADMIN` (ver 1.4).
 - `JWT_SECRET`: segredo usado para assinar os tokens de login (gere um valor aleatório longo, ex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
@@ -92,9 +92,9 @@ também). Feito isso, basta entrar normalmente no app com esse e-mail: a aba
 
 Não incluído automaticamente nesta sessão (requer login na sua conta):
 
-1. Crie um projeto no [Railway](https://railway.app), adicione um plugin MySQL.
+1. Crie um projeto no [Railway](https://railway.app), adicione um plugin PostgreSQL.
 2. Adicione um serviço apontando para a pasta `/api` deste repositório (deploy via GitHub) ou rode `railway up` a partir de `/api` com o Railway CLI já logado.
-3. Configure as variáveis de ambiente do serviço (`DATABASE_URL` já vem pronta do plugin MySQL; adicione `APP_API_KEY` e `JWT_SECRET`).
+3. Configure as variáveis de ambiente do serviço (`DATABASE_URL` já vem pronta do plugin PostgreSQL; adicione `APP_API_KEY` e `JWT_SECRET`).
 4. Rode a migration em produção: `railway run npx prisma migrate deploy`.
 
 ## 2. App mobile (`/app`)
