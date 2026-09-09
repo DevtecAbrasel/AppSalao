@@ -51,68 +51,73 @@ export function LoginScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>Entre para ver e favoritar a programação</Text>
       </LinearGradient>
 
-      <View style={styles.form}>
-        <Text style={styles.campoLabel}>E-mail</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="voce@exemplo.com"
-          placeholderTextColor={colors.textMuted}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          keyboardType="email-address"
-          returnKeyType="next"
-        />
-
-        <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
-        {/* O ícone é irmão do campo dentro de um container com a moldura, e não
-            filho dele: assim a área de toque não disputa espaço com o texto e
-            o campo continua um TextInput simples. */}
-        <View style={styles.senhaWrapper}>
+      {/* Coluna com largura máxima: no navegador em tela cheia um campo de
+          e-mail com 1200px de largura fica desproporcional, e o olho da senha
+          vai parar longe demais do texto que ele revela. */}
+      <View style={styles.corpo}>
+        <View style={styles.form}>
+          <Text style={styles.campoLabel}>E-mail</Text>
           <TextInput
-            style={styles.senhaInput}
-            placeholder="Sua senha"
+            style={styles.input}
+            placeholder="voce@exemplo.com"
             placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!senhaVisivel}
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
             autoCorrect={false}
-            autoComplete="password"
-            returnKeyType="go"
-            onSubmitEditing={handleSubmit}
+            autoComplete="email"
+            keyboardType="email-address"
+            returnKeyType="next"
           />
-          <Pressable
-            onPress={() => setSenhaVisivel((v) => !v)}
-            style={styles.olhoBotao}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
-          >
-            <Icon name={senhaVisivel ? "eye-off" : "eye"} size={20} color={colors.textMuted} />
-          </Pressable>
+
+          <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
+          {/* O ícone é irmão do campo dentro de um container com a moldura, e
+              não filho dele: assim a área de toque não disputa espaço com o
+              texto e o campo continua um TextInput simples. */}
+          <View style={styles.senhaWrapper}>
+            <TextInput
+              style={styles.senhaInput}
+              placeholder="Sua senha"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!senhaVisivel}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="password"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+            />
+            <Pressable
+              onPress={() => setSenhaVisivel((v) => !v)}
+              style={styles.olhoBotao}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+            >
+              <Icon name={senhaVisivel ? "eye-off" : "eye"} size={20} color={colors.textMuted} />
+            </Pressable>
+          </View>
+
+          {error && <Text style={styles.error}>{error}</Text>}
         </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        <Pressable
+          style={[styles.button, submitting && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting || !email || !password}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Entrar</Text>
+          )}
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate("Signup")} style={styles.linkWrapper}>
+          <Text style={styles.link}>Não tem conta? Criar conta</Text>
+        </Pressable>
       </View>
-
-      <Pressable
-        style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={submitting || !email || !password}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Entrar</Text>
-        )}
-      </Pressable>
-
-      <Pressable onPress={() => navigation.navigate("Signup")} style={styles.linkWrapper}>
-        <Text style={styles.link}>Não tem conta? Criar conta</Text>
-      </Pressable>
     </KeyboardAvoidingView>
   );
 }
@@ -142,6 +147,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.azulClaro,
     marginTop: spacing.md,
+  },
+  corpo: {
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
   },
   // Formulário num bloco só, com a margem lateral aplicada uma vez — antes
   // cada campo carregava a própria margem, o que espalha a decisão de layout.

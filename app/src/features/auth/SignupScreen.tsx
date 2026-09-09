@@ -7,10 +7,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { AuthStackParamList } from "../../navigation/types";
 import { useAuthStore } from "./store";
 
@@ -22,6 +24,9 @@ export function SignupScreen({ navigation }: Props) {
   const register = useAuthStore((s) => s.register);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Aqui o "mostrar senha" pesa ainda mais que no login: é uma senha sendo
+  // criada, com mínimo de caracteres, e não há campo de confirmação.
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,43 +60,67 @@ export function SignupScreen({ navigation }: Props) {
         </Text>
       </LinearGradient>
 
-      <TextInput
-        style={styles.input}
-        placeholder="E-mail"
-        placeholderTextColor={colors.textMuted}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha (mín. 8 caracteres)"
-        placeholderTextColor={colors.textMuted}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="new-password"
-      />
+      <View style={styles.corpo}>
+        <View style={styles.form}>
+          <Text style={styles.campoLabel}>E-mail</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="voce@exemplo.com"
+            placeholderTextColor={colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            keyboardType="email-address"
+            returnKeyType="next"
+          />
 
-      {error && <Text style={styles.error}>{error}</Text>}
+          <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
+          <View style={styles.senhaWrapper}>
+            <TextInput
+              style={styles.senhaInput}
+              placeholder={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres`}
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!senhaVisivel}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="new-password"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+            />
+            <Pressable
+              onPress={() => setSenhaVisivel((v) => !v)}
+              style={styles.olhoBotao}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+            >
+              <Icon name={senhaVisivel ? "eye-off" : "eye"} size={20} color={colors.textMuted} />
+            </Pressable>
+          </View>
 
-      <Pressable
-        style={[styles.button, submitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={submitting || !email || !password}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Criar conta</Text>
-        )}
-      </Pressable>
+          {error && <Text style={styles.error}>{error}</Text>}
+        </View>
 
-      <Pressable onPress={() => navigation.navigate("Login")} style={styles.linkWrapper}>
-        <Text style={styles.link}>Já tem conta? Entrar</Text>
-      </Pressable>
+        <Pressable
+          style={[styles.button, submitting && styles.buttonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting || !email || !password}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Criar conta</Text>
+          )}
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate("Login")} style={styles.linkWrapper}>
+          <Text style={styles.link}>Já tem conta? Entrar</Text>
+        </Pressable>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -122,6 +151,25 @@ const styles = StyleSheet.create({
     color: colors.azulClaro,
     marginTop: spacing.md,
   },
+  // Mesmas medidas do login (ver LoginScreen): as duas telas são a mesma
+  // porta de entrada e trocar de uma para a outra não pode mexer no layout.
+  corpo: {
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
+  },
+  form: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  campoLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  campoLabelSegundo: {
+    marginTop: spacing.md,
+  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -131,13 +179,32 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 4,
     fontSize: 15,
     color: colors.text,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+  },
+  senhaWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingRight: spacing.xs,
+  },
+  senhaInput: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    fontSize: 15,
+    color: colors.text,
+  },
+  olhoBotao: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   error: {
     color: colors.live,
     fontSize: 13,
-    marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
   },
   button: {
