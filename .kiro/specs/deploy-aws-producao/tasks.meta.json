@@ -1,0 +1,191 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Criar `api/.dockerignore`": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707025
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974718349
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974755696
+      }
+    ],
+    "2. Criar `api/Dockerfile` multi-stage": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707125
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974761255
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974845414
+      }
+    ],
+    "3. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707218
+      }
+    ],
+    "4. Criar `api/docker-compose.prod.yml`": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707361
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974762282
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974846330
+      }
+    ],
+    "5. Criar `api/.env.production.example`": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707451
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974762986
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974847510
+      }
+    ],
+    "6. Criar template de referência do Nginx em `deploy/nginx/appsalao.abrasel.xyz.conf`": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707546
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974764001
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974848389
+      }
+    ],
+    "7. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707637
+      }
+    ],
+    "8.1 Documentar a preparação inicial (apenas primeira implantação)": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707730
+      }
+    ],
+    "8.2 Documentar a criação do Banco_De_Producao e usuário dedicado": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707847
+      }
+    ],
+    "8.3 Documentar build da imagem e aplicação de migrations": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974707957
+      }
+    ],
+    "8.4 Documentar subida/atualização do container e verificação local": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708063
+      }
+    ],
+    "8.5 Documentar configuração e recarga do Nginx_Existente": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708193
+      }
+    ],
+    "8.6 Documentar o resumo do fluxo repetível de deploy (deploys subsequentes)": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708295
+      }
+    ],
+    "8.7 Documentar a Estratégia de Rollback": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708385
+      }
+    ],
+    "8.8 Documentar diagnóstico e observabilidade": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708479
+      }
+    ],
+    "9. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708621
+      }
+    ],
+    "10. Smoke test local do build da imagem Docker": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708723
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974894922
+      },
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788975360700
+      }
+    ],
+    "11. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "5d541d12-601f-499e-9823-2cf8c4b11015",
+        "chatSessionId": "sess_76c01a93-654f-43d3-bb8b-a745d68e6d27",
+        "timestamp": 1788974708821
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+# Dependências (reinstaladas dentro da imagem via npm ci)
+node_modules
+
+# Artefatos de build local (a imagem gera o seu próprio dist/ via npm run build)
+dist
+
+# Segredos e variáveis de ambiente locais/produção
+# Nunca devem entrar no contexto de build da imagem
+.env
+.env.*
+!.env.production.example
+
+# Controle de versão
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Editor / SO
+.vscode
+.idea
+.DS_Store
+
+# Testes e cobertura
+coverage
+
+# Documentação e arquivos não necessários ao build
+README.md
