@@ -4,6 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, radius, spacing, typography } from "../../constants/theme";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StateView";
+import { Icon } from "../../components/Icon";
 import { formatEventDate, formatEventTime } from "../../lib/dateTime";
 import { NotificationItem } from "./api";
 import { useNotificationsStore } from "./store";
@@ -90,7 +91,12 @@ export function NotificationsScreen({ navigation }: Props) {
 
               <View style={styles.footer}>
                 <Text style={styles.timestamp}>{formatWhen(item.createdAt)}</Text>
-                {item.event && <Text style={styles.link}>Ver palestra →</Text>}
+                {item.event && (
+                  <View style={styles.linkWrapper}>
+                    <Text style={styles.link}>Ver palestra</Text>
+                    <Icon name="chevron-right" size={16} color={colors.primary} />
+                  </View>
+                )}
               </View>
             </Pressable>
           );
@@ -180,6 +186,13 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: colors.textMuted,
+  },
+  // A seta encosta no texto (margem negativa compensa o respiro interno do
+  // traçado de 24×24) para o par ler como um único link.
+  linkWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: -4,
   },
   link: {
     fontSize: 12,

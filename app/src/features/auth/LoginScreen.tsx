@@ -8,9 +8,11 @@ import {
   Text,
   TextInput,
 } from "react-native";
+import { View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { AuthStackParamList } from "../../navigation/types";
 import { useAuthStore } from "./store";
 
@@ -20,6 +22,9 @@ export function LoginScreen({ navigation }: Props) {
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Só controla a exibição: o valor de `password` nunca é tocado por isto, e
+  // o envio usa sempre o estado, visível ou não.
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,27 +51,52 @@ export function LoginScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>Entre para ver e favoritar a programação</Text>
       </LinearGradient>
 
-      <TextInput
-        style={styles.input}
-        placeholder="E-mail"
-        placeholderTextColor={colors.textMuted}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        placeholderTextColor={colors.textMuted}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="password"
-      />
+      <View style={styles.form}>
+        <Text style={styles.campoLabel}>E-mail</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="voce@exemplo.com"
+          placeholderTextColor={colors.textMuted}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          returnKeyType="next"
+        />
 
-      {error && <Text style={styles.error}>{error}</Text>}
+        <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
+        {/* O ícone é irmão do campo dentro de um container com a moldura, e não
+            filho dele: assim a área de toque não disputa espaço com o texto e
+            o campo continua um TextInput simples. */}
+        <View style={styles.senhaWrapper}>
+          <TextInput
+            style={styles.senhaInput}
+            placeholder="Sua senha"
+            placeholderTextColor={colors.textMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!senhaVisivel}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="password"
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
+          />
+          <Pressable
+            onPress={() => setSenhaVisivel((v) => !v)}
+            style={styles.olhoBotao}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+          >
+            <Icon name={senhaVisivel ? "eye-off" : "eye"} size={20} color={colors.textMuted} />
+          </Pressable>
+        </View>
+
+        {error && <Text style={styles.error}>{error}</Text>}
+      </View>
 
       <Pressable
         style={[styles.button, submitting && styles.buttonDisabled]}
@@ -113,6 +143,20 @@ const styles = StyleSheet.create({
     color: colors.azulClaro,
     marginTop: spacing.md,
   },
+  // Formulário num bloco só, com a margem lateral aplicada uma vez — antes
+  // cada campo carregava a própria margem, o que espalha a decisão de layout.
+  form: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  campoLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  campoLabelSegundo: {
+    marginTop: spacing.md,
+  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -122,13 +166,35 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 4,
     fontSize: 15,
     color: colors.text,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+  },
+  // Mesma moldura do input, porém como container: o TextInput dentro fica sem
+  // borda para não desenhar uma segunda.
+  senhaWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingRight: spacing.xs,
+  },
+  senhaInput: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    fontSize: 15,
+    color: colors.text,
+  },
+  // 44×44 é o alvo mínimo confortável para toque; o ícone de 20 fica centrado.
+  olhoBotao: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   error: {
     color: colors.live,
     fontSize: 13,
-    marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
   },
   button: {

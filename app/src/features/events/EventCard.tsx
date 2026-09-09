@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { formatEventDate, formatEventTime, getEventStatus } from "../../lib/dateTime";
 import { useFavoritesStore } from "../favorites/store";
 import { EventItem, EventStatus } from "../../types";
@@ -35,7 +36,7 @@ export function EventCard({ event, onPress, status }: Props) {
             que parece clicável e não faz nada, a estrela vira um ícone inerte
             (sem Pressable, sem hitSlop) e o motivo aparece no selo abaixo. */}
         {finalizada ? (
-          <Text
+          <View
             style={[styles.star, styles.starDisabled]}
             accessibilityLabel={
               isFavorite
@@ -43,13 +44,25 @@ export function EventCard({ event, onPress, status }: Props) {
                 : "Palestra finalizada, não é mais possível favoritar"
             }
           >
-            {isFavorite ? "★" : "☆"}
-          </Text>
+            <Icon
+              name={isFavorite ? "star" : "star-outline"}
+              size={22}
+              color={colors.textMuted}
+            />
+          </View>
         ) : (
-          <Pressable hitSlop={8} onPress={() => toggleFavorite(event)}>
-            <Text style={[styles.star, isFavorite && styles.starActive]}>
-              {isFavorite ? "★" : "☆"}
-            </Text>
+          <Pressable
+            hitSlop={8}
+            onPress={() => toggleFavorite(event)}
+            style={styles.star}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? "Desfavoritar palestra" : "Favoritar palestra"}
+          >
+            <Icon
+              name={isFavorite ? "star" : "star-outline"}
+              size={22}
+              color={isFavorite ? colors.secondary : colors.textMuted}
+            />
           </Pressable>
         )}
       </View>
@@ -95,12 +108,14 @@ const styles = StyleSheet.create({
   textEnded: {
     color: colors.textMuted,
   },
+  // Caixa do ícone: dá ao toque uma área maior que os 22px do desenho e
+  // mantém a estrela alinhada ao horário na mesma linha.
   star: {
-    fontSize: 22,
-    color: colors.textMuted,
-  },
-  starActive: {
-    color: colors.secondary,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -spacing.xs,
   },
   starDisabled: {
     opacity: 0.35,

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 
 interface Props {
   label: string;
@@ -12,8 +13,14 @@ interface Props {
 export function PlacePreviewCard({ label, onClose }: Props) {
   return (
     <View style={styles.card}>
-      <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
-        <Text style={styles.closeText}>✕</Text>
+      <Pressable
+        style={styles.closeButton}
+        onPress={onClose}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+      >
+        <Icon name="close" size={18} color={colors.textMuted} />
       </Pressable>
 
       <Text style={styles.eyebrow}>Estande / Ativação</Text>
@@ -41,13 +48,13 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: spacing.sm,
-    right: spacing.sm,
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
-  },
-  closeText: {
-    fontSize: 16,
-    color: colors.textMuted,
   },
   eyebrow: {
     fontSize: 12,
