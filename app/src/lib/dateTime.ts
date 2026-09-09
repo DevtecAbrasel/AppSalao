@@ -10,9 +10,16 @@ export function getEventStatus(event: Pick<EventItem, "startTime" | "endTime">, 
   const end = new Date(event.endTime).getTime();
   const current = now.getTime();
 
+  if (Number.isNaN(start)) return "upcoming";
+
   if (current < start) return "upcoming";
-  if (current >= start && current <= end) return "live";
-  return "ended";
+
+  // Sem término válido não dá para afirmar que acabou. Uma palestra em
+  // andamento é o palpite seguro: marcá-la como finalizada esconderia da
+  // agenda e bloquearia o favorito de algo que talvez esteja acontecendo.
+  if (Number.isNaN(end)) return "live";
+
+  return current <= end ? "live" : "ended";
 }
 
 export function msUntil(isoDate: string, now = new Date()): number {

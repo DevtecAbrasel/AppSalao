@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, spacing } from "../../constants/theme";
+import { colors, radius, spacing } from "../../constants/theme";
+import { normalizarTexto } from "../../lib/search";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StateView";
 import { AgendaStackParamList } from "../../navigation/types";
+import { getEventStatus } from "../../lib/dateTime";
+import { EventStatus } from "../../types";
 import { useEventsStore } from "./store";
+import { useNow } from "./useNow";
 import { EventCard } from "./EventCard";
 import { FilterChip } from "./FilterChip";
 
@@ -20,6 +32,14 @@ function dayKeyOf(isoDate: string): string {
 export function AgendaScreen({ navigation }: Props) {
   const { events, status, error, load, refresh } = useEventsStore();
   const [dayFilter, setDayFilter] = useState<string | null>(null);
+  // Por padrão a agenda mostra o que ainda vai acontecer; as encerradas ficam
+  // atrás do chip "Finalizadas" — somem da lista ativa sem sumir do app.
+  const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
+  const [busca, setBusca] = useState("");
+
+  // Relógio compartilhado da tela: é ele que faz uma palestra migrar para
+  // "Finalizada" sozinha, sem o usuário reabrir o app.
+  const now = useNow();
 
   useEffect(() => {
     load();
@@ -30,11 +50,49 @@ export function AgendaScreen({ navigation }: Props) {
     return unique.sort();
   }, [events]);
 
+  // Status calculado uma vez por evento e reaproveitado no filtro e no card.
+  const comStatus = useMemo(
+    () => events.map((e) => ({ event: e, status: getEventStatus(e, now) as EventStatus })),
+    [events, now]
+  );
+
+  const finalizadasCount = useMemo(
+    () => comStatus.filter((x) => x.status === "ended").length,
+    [comStatus]
+  );
+
+  // Título e local normalizados uma vez por evento, e não a cada tecla. Só
+  // muda quando a lista de eventos muda — nunca toca no dado original.
+  const indiceBusca = useMemo(
+    () =>
+      new Map(
+        events.map((e) => [e.id, normalizarTexto(`${e.title} ${e.locationName}`)])
+      ),
+    [events]
+  );
+
+  const termo = useMemo(() => normalizarTexto(busca), [busca]);
+  const combina = (id: string) => !termo || (indiceBusca.get(id) ?? "").includes(termo);
+
   const filteredEvents = useMemo(() => {
-    return events
-      .filter((e) => !dayFilter || dayKeyOf(e.startTime) === dayFilter)
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [events, dayFilter]);
+    return comStatus
+      .filter((x) => (mostrarFinalizadas ? x.status === "ended" : x.status !== "ended"))
+      .filter((x) => !dayFilter || dayKeyOf(x.event.startTime) === dayFilter)
+      .filter((x) => combina(x.event.id))
+      .sort(
+        (a, b) =>
+          new Date(a.event.startTime).getTime() - new Date(b.event.startTime).getTime()
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comStatus, dayFilter, mostrarFinalizadas, termo, indiceBusca]);
+
+  // Quantas palestras o termo acharia entre as encerradas, para poder avisar
+  // quando o resultado vazio é só efeito do filtro de finalizadas.
+  const achadasEmFinalizadas = useMemo(() => {
+    if (!termo || mostrarFinalizadas) return 0;
+    return comStatus.filter((x) => x.status === "ended" && combina(x.event.id)).length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comStatus, termo, mostrarFinalizadas, indiceBusca]);
 
   if (status === "loading" && events.length === 0) {
     return <LoadingState label="Carregando programação..." />;
@@ -46,6 +104,31 @@ export function AgendaScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.buscaWrapper}>
+        <Text style={styles.buscaIcone}>🔍</Text>
+        <TextInput
+          style={styles.buscaInput}
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="Pesquisar palestra ou arena..."
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          accessibilityLabel="Pesquisar palestra ou arena"
+        />
+        {busca.length > 0 && (
+          <Pressable
+            onPress={() => setBusca("")}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Limpar pesquisa"
+          >
+            <Text style={styles.buscaLimpar}>✕</Text>
+          </Pressable>
+        )}
+      </View>
+
       {days.length > 1 && (
         <View style={styles.filters}>
           {days.map((day) => (
@@ -63,25 +146,46 @@ export function AgendaScreen({ navigation }: Props) {
         </View>
       )}
 
+      {finalizadasCount > 0 && (
+        <View style={styles.filters}>
+          <FilterChip
+            label={`Finalizadas (${finalizadasCount})`}
+            active={mostrarFinalizadas}
+            onPress={() => setMostrarFinalizadas((v) => !v)}
+          />
+        </View>
+      )}
+
       {error && events.length > 0 && (
         <Text style={styles.errorBanner}>Não foi possível atualizar: {error}</Text>
       )}
 
       <FlatList
         data={filteredEvents}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.event.id}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={status === "refreshing"} onRefresh={refresh} />
         }
         renderItem={({ item }) => (
           <EventCard
-            event={item}
-            onPress={() => navigation.navigate("EventDetail", { eventId: item.id })}
+            event={item.event}
+            status={item.status}
+            onPress={() => navigation.navigate("EventDetail", { eventId: item.event.id })}
           />
         )}
         ListEmptyComponent={
-          <EmptyState message="Nenhum evento encontrado para esse filtro." />
+          <EmptyState
+            message={
+              termo
+                ? achadasEmFinalizadas > 0
+                  ? `Não encontramos nenhuma palestra ou arena com esse nome entre as próximas — mas há ${achadasEmFinalizadas} em "Finalizadas".`
+                  : "Não encontramos nenhuma palestra ou arena com esse nome."
+                : mostrarFinalizadas
+                  ? "Nenhuma palestra finalizada ainda."
+                  : "Nenhum evento encontrado para esse filtro."
+            }
+          />
         }
       />
     </View>
@@ -92,6 +196,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  // Mesma linguagem dos cards: superfície branca, borda suave, cantos retos.
+  buscaWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+  },
+  buscaIcone: {
+    fontSize: 14,
+  },
+  buscaInput: {
+    flex: 1,
+    paddingVertical: spacing.sm + 2,
+    fontSize: 15,
+    color: colors.text,
+  },
+  buscaLimpar: {
+    fontSize: 14,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.xs,
   },
   filters: {
     // View simples em vez de ScrollView: só há poucos filtros de data, então

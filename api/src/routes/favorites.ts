@@ -18,6 +18,15 @@ favoritesRouter.post(
       throw ApiError.notFound("Evento não encontrado");
     }
 
+    // Palestra que já terminou não pode mais ser favoritada. A estrela some da
+    // interface, mas quem montar a requisição na mão precisa esbarrar aqui —
+    // e favoritar algo encerrado só criaria um favorito que nunca vira aviso.
+    // A comparação é entre instantes absolutos (o Date do MySQL e o relógio do
+    // servidor), então independe do fuso de quem chamou.
+    if (event.endTime.getTime() <= Date.now()) {
+      throw ApiError.badRequest("Esta palestra já foi finalizada");
+    }
+
     const favorite = await prisma.userFavorite.upsert({
       where: { userId_eventId: { userId: req.userId, eventId: event_id } },
       update: {},
