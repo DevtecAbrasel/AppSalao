@@ -7,6 +7,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# OpenSSL e libc6-compat sao necessarios para o Prisma funcionar
+# corretamente em imagens Alpine (evita erro "Could not parse schema
+# engine response" ao rodar prisma migrate deploy / generate).
+RUN apk add --no-cache openssl libc6-compat
+
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
@@ -23,6 +28,8 @@ FROM node:20-alpine AS runner
 ENV NODE_ENV=production
 
 WORKDIR /app
+
+RUN apk add --no-cache openssl libc6-compat
 
 COPY package.json package-lock.json ./
 COPY --from=builder /app/prisma ./prisma
