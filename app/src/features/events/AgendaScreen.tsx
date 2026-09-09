@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, radius, spacing } from "../../constants/theme";
 import { normalizarTexto } from "../../lib/search";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StateView";
+import { Icon } from "../../components/Icon";
 import { AgendaStackParamList } from "../../navigation/types";
 import { getEventStatus } from "../../lib/dateTime";
 import { EventStatus } from "../../types";
@@ -105,7 +106,9 @@ export function AgendaScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.buscaWrapper}>
-        <Text style={styles.buscaIcone}>🔍</Text>
+        <View style={styles.buscaIcone}>
+          <Icon name="search" size={18} color={colors.textMuted} />
+        </View>
         <TextInput
           style={styles.buscaInput}
           value={busca}
@@ -121,10 +124,11 @@ export function AgendaScreen({ navigation }: Props) {
           <Pressable
             onPress={() => setBusca("")}
             hitSlop={10}
+            style={styles.buscaLimpar}
             accessibilityRole="button"
             accessibilityLabel="Limpar pesquisa"
           >
-            <Text style={styles.buscaLimpar}>✕</Text>
+            <Icon name="close" size={16} color={colors.textMuted} />
           </Pressable>
         )}
       </View>
@@ -211,7 +215,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   buscaIcone: {
-    fontSize: 14,
+    // Altura fixa mantém a lupa centrada verticalmente no campo, independente
+    // de o SVG ser menor que a linha de texto ao lado.
+    alignItems: "center",
+    justifyContent: "center",
   },
   buscaInput: {
     flex: 1,
@@ -220,9 +227,11 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   buscaLimpar: {
-    fontSize: 14,
-    color: colors.textMuted,
-    paddingHorizontal: spacing.xs,
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -spacing.xs,
   },
   filters: {
     // View simples em vez de ScrollView: só há poucos filtros de data, então

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, radius, spacing } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { useNotificationsStore } from "./store";
 
 // Os três stacks (Agenda, Favoritos, Mapa) registram estas mesmas rotas, então
@@ -30,7 +31,7 @@ export function NotificationBell() {
     >
       {/* Sino apagado quando não há nada — o estado "sem novidade" precisa
           ser visível sem depender só da ausência do badge. */}
-      <Text style={[styles.icon, !hasUnread && styles.iconMuted]}>🔔</Text>
+      <Icon name="bell" size={22} color={hasUnread ? colors.text : colors.textMuted} />
       {hasUnread && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
@@ -43,13 +44,8 @@ export function NotificationBell() {
 const styles = StyleSheet.create({
   button: {
     paddingHorizontal: spacing.xs,
+    alignItems: "center",
     justifyContent: "center",
-  },
-  icon: {
-    fontSize: 20,
-  },
-  iconMuted: {
-    opacity: 0.45,
   },
   badge: {
     position: "absolute",

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius, spacing } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { useNotificationsStore } from "./store";
 
 // Quanto tempo o banner fica na tela antes de sumir sozinho.
@@ -80,7 +81,7 @@ export function NotificationToast({ onOpenEvent }: Props) {
           accessibilityRole="button"
           accessibilityLabel="Dispensar aviso"
         >
-          <Text style={styles.closeIcon}>✕</Text>
+          <Icon name="close" size={14} color={colors.textMuted} />
         </Pressable>
       </View>
     </Animated.View>
@@ -127,13 +128,9 @@ const styles = StyleSheet.create({
   },
   close: {
     marginLeft: spacing.sm,
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     alignItems: "center",
     justifyContent: "center",
-  },
-  closeIcon: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
 });

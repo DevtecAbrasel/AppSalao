@@ -5,6 +5,7 @@ import { NavigationProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, gradients, radius, spacing } from "../../constants/theme";
 import { LoadingState, ErrorState } from "../../components/StateView";
+import { Icon } from "../../components/Icon";
 import {
   AgendaStackParamList,
   FavoritesStackParamList,
@@ -130,6 +131,17 @@ export function EventDetailScreen({ route, navigation }: Props) {
             onPress={() => toggleFavorite(event)}
             disabled={finalizada}
           >
+            {/* A estrela só acompanha o rótulo quando o botão está ativo:
+                em "Palestra finalizada" não há ação de favoritar a sinalizar. */}
+            {!finalizada && (
+              <Icon
+                name={isFavorite ? "star" : "star-outline"}
+                size={18}
+                // Favoritado o botão fica sólido: o ícone segue a cor do
+                // rótulo (buttonTextActive) para os dois lerem como um par.
+                color={isFavorite ? "#fff" : colors.text}
+              />
+            )}
             <Text
               style={[
                 styles.buttonText,
@@ -137,7 +149,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
                 finalizada && styles.buttonTextDisabled,
               ]}
             >
-              {finalizada ? "Palestra finalizada" : isFavorite ? "★ Favoritado" : "☆ Favoritar"}
+              {finalizada ? "Palestra finalizada" : isFavorite ? "Favoritado" : "Favoritar"}
             </Text>
           </Pressable>
 
@@ -201,12 +213,15 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.pill,
     paddingVertical: spacing.sm,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonActive: {
     backgroundColor: colors.secondary,

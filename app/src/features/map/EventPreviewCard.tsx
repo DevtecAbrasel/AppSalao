@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { formatEventTime } from "../../lib/dateTime";
 import { EventItem } from "../../types";
 import { Countdown } from "../events/Countdown";
@@ -13,8 +14,14 @@ interface Props {
 export function EventPreviewCard({ event, onPress, onClose }: Props) {
   return (
     <View style={styles.card}>
-      <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
-        <Text style={styles.closeText}>✕</Text>
+      <Pressable
+        style={styles.closeButton}
+        onPress={onClose}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+      >
+        <Icon name="close" size={18} color={colors.textMuted} />
       </Pressable>
 
       <Text style={styles.location}>{event.locationName}</Text>
@@ -56,13 +63,13 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: spacing.sm,
-    right: spacing.sm,
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
-  },
-  closeText: {
-    fontSize: 16,
-    color: colors.textMuted,
   },
   location: {
     fontSize: 12,

@@ -38,12 +38,15 @@ export function buildNotificationContent(
   const time = timeFormatter.format(event.startTime);
   const when = noMesmoDia ? time : `${dateFormatter.format(event.startTime)} às ${time}`;
 
+  // Sem emoji no título: o app usa ícones vetoriais e o sino já sinaliza que
+  // aquilo é um aviso, então o relógio/calendário só repetia o contexto com um
+  // desenho que muda de forma em cada sistema.
   const title =
     offset >= 24 * 60
       ? noMesmoDia
-        ? "⏰ Sua palestra é hoje!"
-        : "📅 Amanhã tem palestra!"
-      : "⏰ Sua palestra está chegando!";
+        ? "Sua palestra é hoje!"
+        : "Amanhã tem palestra!"
+      : "Sua palestra está chegando!";
 
   return {
     title,

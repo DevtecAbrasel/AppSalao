@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, GestureResponderEvent, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, GestureResponderEvent, Image, Pressable, StyleSheet, View } from "react-native";
 import { colors, radius } from "../../constants/theme";
+import { Icon } from "../../components/Icon";
 import { Point, visibleContentRect } from "./zoomMath";
 
 const MINIMAP_WIDTH = 108;
@@ -101,7 +102,7 @@ export function Minimap({
         hitSlop={8}
         accessibilityLabel="Mostrar minimapa"
       >
-        <Text style={styles.restoreIcon}>▦</Text>
+        <Icon name="map" size={16} color={colors.marinho} />
       </Pressable>
     );
   }
@@ -125,7 +126,7 @@ export function Minimap({
         hitSlop={8}
         accessibilityLabel="Esconder minimapa"
       >
-        <Text style={styles.collapseIcon}>✕</Text>
+        <Icon name="close" size={11} color={colors.textMuted} />
       </Pressable>
     </View>
   );
@@ -197,11 +198,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  collapseIcon: {
-    fontSize: 9,
-    lineHeight: 10,
-    color: colors.textMuted,
-  },
   restoreButton: {
     width: 28,
     height: 28,
@@ -217,9 +213,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
     elevation: 3,
-  },
-  restoreIcon: {
-    fontSize: 14,
-    color: colors.marinho,
   },
 });
