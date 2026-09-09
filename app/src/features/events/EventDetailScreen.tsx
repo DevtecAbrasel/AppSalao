@@ -12,8 +12,9 @@ import {
   RootTabParamList,
 } from "../../navigation/types";
 import { EventItem } from "../../types";
-import { formatEventDate, formatEventTime } from "../../lib/dateTime";
+import { formatEventDate, formatEventTime, getEventStatus } from "../../lib/dateTime";
 import { useEventsStore } from "./store";
+import { useNow } from "./useNow";
 import { useFavoritesStore } from "../favorites/store";
 import { fetchEventById } from "./api";
 import { Countdown } from "./Countdown";
@@ -37,6 +38,7 @@ export function EventDetailScreen({ route, navigation }: Props) {
 
   const isFavorite = useFavoritesStore((s) => (event ? s.isFavorite(event.id) : false));
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+  const now = useNow();
 
   useEffect(() => {
     if (cachedEvent) return;
@@ -70,6 +72,8 @@ export function EventDetailScreen({ route, navigation }: Props) {
   if (status === "error" || !event) {
     return <ErrorState message={error ?? "Evento não encontrado"} />;
   }
+
+  const finalizada = getEventStatus(event, now) === "ended";
 
   const goToMap = () => {
     const rootNavigation = navigation.getParent<NavigationProp<RootTabParamList>>();
@@ -115,12 +119,25 @@ export function EventDetailScreen({ route, navigation }: Props) {
         <Text style={styles.description}>{event.description}</Text>
 
         <View style={styles.actions}>
+          {/* Encerrada: o botão continua na tela para não deslocar o layout,
+              mas fica inerte e explica o porquê, em vez de sumir sem aviso. */}
           <Pressable
-            style={[styles.button, isFavorite && styles.buttonActive]}
+            style={[
+              styles.button,
+              isFavorite && styles.buttonActive,
+              finalizada && styles.buttonDisabled,
+            ]}
             onPress={() => toggleFavorite(event)}
+            disabled={finalizada}
           >
-            <Text style={[styles.buttonText, isFavorite && styles.buttonTextActive]}>
-              {isFavorite ? "★ Favoritado" : "☆ Favoritar"}
+            <Text
+              style={[
+                styles.buttonText,
+                isFavorite && styles.buttonTextActive,
+                finalizada && styles.buttonTextDisabled,
+              ]}
+            >
+              {finalizada ? "Palestra finalizada" : isFavorite ? "★ Favoritado" : "☆ Favoritar"}
             </Text>
           </Pressable>
 
@@ -201,6 +218,13 @@ const styles = StyleSheet.create({
   },
   buttonTextActive: {
     color: "#fff",
+  },
+  buttonDisabled: {
+    backgroundColor: colors.surfaceCream,
+    borderColor: colors.border,
+  },
+  buttonTextDisabled: {
+    color: colors.textMuted,
   },
   buttonOutline: {
     flex: 1,

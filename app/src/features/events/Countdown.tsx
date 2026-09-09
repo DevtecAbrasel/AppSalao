@@ -14,7 +14,7 @@ export function Countdown({ event }: Props) {
   if (status === "ended") {
     return (
       <View style={[styles.badge, { backgroundColor: colors.ended }]}>
-        <Text style={styles.text}>Encerrado</Text>
+        <Text style={styles.text}>Finalizada</Text>
       </View>
     );
   }

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { getEventStatus, msUntil, toCountdown } from "../../lib/dateTime";
 import { EventItem, EventStatus } from "../../types";
+import { useNow } from "./useNow";
 
 export interface CountdownState {
   status: EventStatus;
@@ -8,12 +8,8 @@ export interface CountdownState {
 }
 
 export function useCountdown(event: Pick<EventItem, "startTime" | "endTime">): CountdownState {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // 1s porque a pill mostra segundos; as listas usam useNow(30s) direto.
+  const now = useNow(1000);
 
   const status = getEventStatus(event, now);
   const target = status === "upcoming" ? event.startTime : event.endTime;
