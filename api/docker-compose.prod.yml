@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    image: salao-abrasel-api:latest
+    container_name: salao-abrasel-api
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:3333:3333"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
