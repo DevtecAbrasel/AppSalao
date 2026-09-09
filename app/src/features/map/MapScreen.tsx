@@ -7,18 +7,35 @@ import { MapStackParamList } from "../../navigation/types";
 import { EventItem, EventStatus } from "../../types";
 import { getEventStatus } from "../../lib/dateTime";
 import { useEventsStore } from "../events/store";
+import { useFavoritesStore } from "../favorites/store";
 import { PlantaPin } from "./PlantaPin";
 import { EventPreviewCard } from "./EventPreviewCard";
 import { PlacePreviewCard } from "./PlacePreviewCard";
+import { Minimap } from "./Minimap";
 import { POINTS_OF_INTEREST } from "./pointsOfInterest";
 import { ZoomPan, ZoomPanHandle } from "./ZoomPan";
+import { computeCoverScale, Point } from "./zoomMath";
 
 type Props = NativeStackScreenProps<MapStackParamList, "MapView">;
 
 const PLANTA_IMAGE = require("../../../assets/planta-salao.png");
-// Dimensões reais do arquivo (ver app/assets/planta-salao.png) — usadas pra
-// calcular o enquadramento sem distorcer a planta em nenhum tamanho de tela.
-const PLANTA_ASPECT_RATIO = 2350 / 820;
+// Dimensões reais do arquivo (ver app/assets/planta-salao.png) — o conteúdo
+// dentro do ZoomPan é sempre renderizado nesse tamanho (nunca no tamanho,
+// menor, da viewport) e depois ESCALADO PRA BAIXO pra caber na tela. Isso é
+// o oposto do que fazíamos antes (renderizar do tamanho da viewport e
+// escalar pra CIMA ao dar zoom) — escalar uma imagem pequena pra cima é o
+// que causava o borrão ao dar zoom, tanto no mobile quanto no desktop.
+//
+// O PNG é gerado direto do PDF VETORIAL da planta (PlantaSalãoAbrasel), no
+// mesmo recorte de sempre — página 1, x=66,5 y=200,0 w=1566,96 h=546,77 pt —
+// só que a 3x da resolução antiga (era 2350x820). Como o recorte é idêntico,
+// as coordenadas normalizadas dos pins (0..1) continuam valendo sem mexer em
+// nada. Se um dia a memória apertar (7050x2460 decodifica pra ~69 MB), dá pra
+// reexportar o MESMO recorte a 4700x1640 e só trocar os dois números abaixo.
+const PLANTA_NATIVE_WIDTH = 7050;
+const PLANTA_NATIVE_HEIGHT = 2460;
+// Quanto além do "cobrir a tela" (zoom mínimo) o usuário pode ampliar.
+const MAX_ZOOM_MULTIPLIER = 4;
 
 const STATUS_COLOR: Record<EventStatus, string> = {
   upcoming: colors.marinho,
@@ -88,17 +105,25 @@ function pickRoomPins(events: EventItem[]): RoomPin[] {
 
 export function MapScreen({ route, navigation }: Props) {
   const { events, status, error, load } = useEventsStore();
+  const { favorites, load: loadFavorites, status: favoritesStatus } = useFavoritesStore();
   const [selection, setSelection] = useState<Selection>(null);
-  // A área do mapa tem a MESMA proporção da imagem (via style `aspectRatio`),
-  // então largura/altura da viewport já são exatamente as da planta — sem
-  // letterboxing nem espaço vazio sobrando, em qualquer tamanho de tela.
+  // A viewport ocupa a tela toda (style `mapViewport` com `flex: 1`) e pode
+  // ter uma proporção bem diferente da planta — o mapa nunca é encolhido
+  // pra caber inteiro (isso é o que fazia virar uma faixinha minúscula no
+  // celular); em vez disso ele sempre COBRE a viewport (como um `object-fit:
+  // cover`), cortando o que sobrar, e o usuário navega com pan/zoom.
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
+  const [liveView, setLiveView] = useState<{ scale: number; center: Point } | null>(null);
   const hasCenteredRef = useRef(false);
 
   const zoomPanRef = useRef<ZoomPanHandle>(null);
 
-  const plantaWidth = viewport?.width ?? 0;
-  const plantaHeight = viewport?.height ?? 0;
+  const content = { width: PLANTA_NATIVE_WIDTH, height: PLANTA_NATIVE_HEIGHT };
+
+  // Escala mínima: a planta sempre cobre a viewport inteira, nunca menos —
+  // é a garantia de que nunca aparece fundo vazio ao redor do mapa.
+  const coverScale = viewport ? computeCoverScale(viewport, content) : 1;
+  const maxScale = coverScale * MAX_ZOOM_MULTIPLIER;
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -107,29 +132,62 @@ export function MapScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     load();
-  }, [load]);
+    loadFavorites();
+  }, [load, loadFavorites]);
 
   const pins = useMemo(() => pickRoomPins(events), [events]);
 
+  // Palestra favoritada mais relevante agora: a que já começou (se houver)
+  // ou, senão, a próxima a começar — é nela que focamos o mapa ao abrir a
+  // tela, pra já mostrar de cara a arena/estande de quem o usuário marcou.
+  const nextFavoriteEvent = useMemo(() => {
+    const now = new Date();
+    const withCoords = favorites.filter((e) => e.locationMapX != null && e.locationMapY != null);
+    const live = withCoords.find((e) => getEventStatus(e, now) === "live");
+    if (live) return live;
+
+    return withCoords
+      .filter((e) => getEventStatus(e, now) === "upcoming")
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+  }, [favorites]);
+
   const focusEventId = route.params?.focusEventId;
 
-  // Enquadramento inicial: centraliza a planta inteira (escala 1 = "contain
-  // fit", já calculado acima) assim que soubermos o tamanho da viewport.
+  // Enquadramento inicial: sempre na escala "cover" (nunca a planta inteira
+  // encolhida). Se não veio um foco explícito (navegação a partir do
+  // detalhe de um evento), centraliza na próxima palestra favoritada; sem
+  // favoritos (ou ainda carregando), centraliza a planta inteira — cortada
+  // simetricamente, já que cover nunca mostra tudo numa tela desproporcional.
   useEffect(() => {
-    if (!viewport || plantaWidth === 0 || hasCenteredRef.current) return;
+    if (!viewport || hasCenteredRef.current || focusEventId) return;
+    if (favoritesStatus === "loading") return; // espera decidir com a lista certa
+
     hasCenteredRef.current = true;
-    zoomPanRef.current?.centerOn(plantaWidth / 2, plantaHeight / 2, 1);
-  }, [viewport, plantaWidth, plantaHeight]);
+
+    if (nextFavoriteEvent) {
+      const pin = pins.find((p) => p.locationName === nextFavoriteEvent.locationName);
+      if (pin) setSelection({ kind: "event", key: pin.key });
+
+      zoomPanRef.current?.centerOn(
+        (nextFavoriteEvent.locationMapX as number) * PLANTA_NATIVE_WIDTH,
+        (nextFavoriteEvent.locationMapY as number) * PLANTA_NATIVE_HEIGHT,
+        coverScale
+      );
+    } else {
+      zoomPanRef.current?.centerOn(PLANTA_NATIVE_WIDTH / 2, PLANTA_NATIVE_HEIGHT / 2, coverScale);
+    }
+  }, [viewport, coverScale, focusEventId, favoritesStatus, nextFavoriteEvent, pins]);
 
   useEffect(() => {
-    if (!focusEventId || pins.length === 0 || plantaWidth === 0) return;
+    if (!focusEventId || pins.length === 0 || !viewport) return;
 
     const pin = pins.find((p) => p.activeEvent.id === focusEventId);
     if (pin) {
+      hasCenteredRef.current = true;
       setSelection({ kind: "event", key: pin.key });
-      zoomPanRef.current?.centerOn(pin.x * plantaWidth, pin.y * plantaHeight, 2);
+      zoomPanRef.current?.centerOn(pin.x * PLANTA_NATIVE_WIDTH, pin.y * PLANTA_NATIVE_HEIGHT, coverScale);
     }
-  }, [focusEventId, pins, plantaWidth, plantaHeight]);
+  }, [focusEventId, pins, viewport, coverScale]);
 
   if (status === "loading" && events.length === 0) {
     return <LoadingState label="Carregando mapa..." />;
@@ -150,16 +208,23 @@ export function MapScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* aspectRatio faz a área do mapa ter exatamente o formato da imagem —
-          sem letterboxing nem espaço vazio sobrando, em qualquer tela. */}
+      {/* flex: 1 faz o mapa ocupar a tela toda (e não uma faixinha no meio,
+          que é o que dava com aspectRatio fixo numa tela alta e estreita).
+          A planta tem outra proporção — a `coverScale` calculada acima cuida
+          de preencher a viewport sem nunca deixar espaço vazio sobrando. */}
       <View style={styles.mapViewport} onLayout={handleLayout}>
         {viewport && (
           <ZoomPan
             ref={zoomPanRef}
             viewportWidth={viewport.width}
             viewportHeight={viewport.height}
+            contentWidth={PLANTA_NATIVE_WIDTH}
+            contentHeight={PLANTA_NATIVE_HEIGHT}
+            minScale={coverScale}
+            maxScale={maxScale}
+            onViewportChange={setLiveView}
           >
-            <View style={{ width: plantaWidth, height: plantaHeight }}>
+            <View style={{ width: PLANTA_NATIVE_WIDTH, height: PLANTA_NATIVE_HEIGHT }}>
               <Image
                 source={PLANTA_IMAGE}
                 style={styles.plantaImage}
@@ -174,6 +239,7 @@ export function MapScreen({ route, navigation }: Props) {
                   color={STATUS_COLOR[getEventStatus(pin.activeEvent)]}
                   highlighted={selection?.kind === "event" && selection.key === pin.key}
                   label={shortMarkerLabel(pin.locationName)}
+                  sizeMultiplier={1 / coverScale}
                   onPress={() => setSelection({ kind: "event", key: pin.key })}
                 />
               ))}
@@ -185,11 +251,27 @@ export function MapScreen({ route, navigation }: Props) {
                   color={POI_COLOR}
                   highlighted={selection?.kind === "poi" && selection.key === poi.key}
                   label={poi.marker}
+                  sizeMultiplier={1 / coverScale}
                   onPress={() => setSelection({ kind: "poi", key: poi.key })}
                 />
               ))}
             </View>
           </ZoomPan>
+        )}
+
+        {viewport && liveView && (
+          <View style={styles.minimapContainer}>
+            <Minimap
+              imageSource={PLANTA_IMAGE}
+              contentWidth={PLANTA_NATIVE_WIDTH}
+              contentHeight={PLANTA_NATIVE_HEIGHT}
+              viewportWidth={viewport.width}
+              viewportHeight={viewport.height}
+              scale={liveView.scale}
+              center={liveView.center}
+              onRecenter={(x, y) => zoomPanRef.current?.centerOn(x, y, liveView.scale)}
+            />
+          </View>
         )}
 
         <View style={styles.zoomControls}>
@@ -230,16 +312,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: "center",
   },
   mapViewport: {
+    flex: 1,
     width: "100%",
-    aspectRatio: PLANTA_ASPECT_RATIO,
     overflow: "hidden",
   },
   plantaImage: {
     width: "100%",
     height: "100%",
+  },
+  // Canto oposto aos botões de zoom, pra não atrapalhar nem um nem outro.
+  minimapContainer: {
+    position: "absolute",
+    left: spacing.sm,
+    top: spacing.sm,
   },
   zoomControls: {
     position: "absolute",
