@@ -8,9 +8,11 @@ Esta funcionalidade cobre a configuração da API para rodar em **produção** e
 
 O domínio e o certificado HTTPS já estão configurados no Nginx_Existente para esta aplicação (`https://appsalao.abrasel.xyz/`), portanto esta spec cobre apenas o encaminhamento desse domínio para o container da API, sem necessidade de emitir novo certificado ou configurar novo domínio. O Banco_De_Producao corresponde a um novo banco de dados a ser criado dentro da instância PostgreSQL já existente na VM_Producao (não é necessário provisionar uma nova instância de PostgreSQL nem um serviço externo). O deploy de novas versões, por ora, será feito por meio de `git pull` manual no servidor seguido dos passos documentados no Requisito 5; a automação desse processo (CI/CD) é uma evolução futura e está fora do escopo desta spec.
 
-O foco desta spec é exclusivamente a API para uso via web. A configuração do app mobile (Expo/React Native, em `/app`) para apontar para a URL de produção está fora de escopo por enquanto, pois não haverá uso do app mobile em produção neste momento.
+Além da API, o escopo desta spec cobre a publicação do projeto em `/app` (Expo/React Native) como App_Web: uma aplicação web estática, sem uso previsto como app de celular por enquanto. O App_Web é acessado exclusivamente pelo navegador (tela de login, marcação de eventos, agenda, etc.) e é gerado por meio do comando de exportação web já suportado pelo projeto (`npx expo export --platform web`), que produz arquivos estáticos (HTML, JavaScript, CSS e demais assets).
 
-Esta spec **não** cobre a criação da infraestrutura AWS do zero (a VM já existe), nem o pipeline de CI/CD automatizado, salvo indicação em contrário durante o refinamento.
+A API e o App_Web são servidos pelo mesmo Nginx_Existente, sob o mesmo domínio `appsalao.abrasel.xyz`, com divisão de caminhos: a raiz do domínio (`/`) serve os arquivos estáticos do App_Web, enquanto o prefixo `/api/*` é roteado pelo Nginx_Existente para o container Docker da API (com remoção do prefixo `/api` antes do encaminhamento, já que as rotas reais da API não possuem esse prefixo). O build do App_Web é gerado diretamente na VM_Producao, a partir de `git pull` na pasta `/app`, seguindo o mesmo padrão manual de deploy já adotado para a API, e não exige processo Node.js dedicado em execução contínua, pois consiste apenas em arquivos estáticos.
+
+Esta spec **não** cobre a criação da infraestrutura AWS do zero (a VM já existe), nem o pipeline de CI/CD automatizado, salvo indicação em contrário durante o refinamento. A configuração do app para uso como aplicativo de celular nativo (build para App Store / Play Store) permanece fora de escopo, pois o projeto não será distribuído dessa forma por enquanto.
 
 ## Glossary
 
@@ -22,6 +24,8 @@ Esta spec **não** cobre a criação da infraestrutura AWS do zero (a VM já exi
 - **Variaveis_De_Ambiente_De_Producao**: O conjunto de variáveis (`DATABASE_URL`, `APP_API_KEY`, `ADMIN_API_KEY`, `JWT_SECRET`, `PORT`, `RESEND_API_KEY`, `EMAIL_FROM`) configuradas para o ambiente de produção da API, distintas dos valores usados em desenvolvimento local.
 - **Migration**: Uma alteração de esquema do banco de dados gerenciada pelo Prisma Migrate.
 - **Administrador**: A pessoa responsável por operar e manter a VM_Producao, com acesso de linha de comando ao servidor.
+- **App_Web**: A versão do projeto em `/app` (Expo/React Native) exportada como aplicação web estática por meio do comando `npx expo export --platform web`, composta por arquivos estáticos (HTML, JavaScript, CSS e demais assets), servida diretamente pelo Nginx_Existente na raiz do domínio `appsalao.abrasel.xyz`, sem processo Node.js dedicado em execução contínua.
+- **Pasta_De_Build_Do_App_Web**: O diretório de saída (`dist/`) gerado pelo comando `npx expo export --platform web` na VM_Producao, contendo os arquivos estáticos do App_Web publicados para o Nginx_Existente servir.
 
 ## Requirements
 
@@ -43,7 +47,7 @@ Esta spec **não** cobre a criação da infraestrutura AWS do zero (a VM já exi
 
 #### Critérios de Aceitação
 
-1. WHEN o Nginx_Existente recebe uma requisição destinada ao domínio `appsalao.abrasel.xyz`, THE Nginx_Existente SHALL encaminhar essa requisição para a porta publicada pelo container Docker da API na VM_Producao, preservando o método, o corpo e os cabeçalhos que identificam o host e o protocolo original da requisição.
+1. WHEN o Nginx_Existente recebe uma requisição destinada ao domínio `appsalao.abrasel.xyz` com caminho iniciado por `/api/`, THE Nginx_Existente SHALL encaminhar essa requisição, com o prefixo `/api` removido, para a porta publicada pelo container Docker da API na VM_Producao, preservando o método, o corpo e os cabeçalhos que identificam o host e o protocolo original da requisição.
 2. THE Nginx_Existente SHALL disponibilizar a API via HTTPS na porta 443 utilizando o certificado TLS já configurado, válido e não expirado, para o domínio `appsalao.abrasel.xyz`.
 3. WHEN o Nginx_Existente recebe uma requisição para o domínio `appsalao.abrasel.xyz` na porta HTTP (80), THE Nginx_Existente SHALL redirecionar a requisição para o endereço HTTPS equivalente.
 4. IF a porta publicada pelo container da API não responde a uma requisição encaminhada pelo Nginx_Existente, THEN THE Nginx_Existente SHALL retornar ao cliente uma resposta de erro indicando indisponibilidade do serviço, sem interromper o funcionamento das demais aplicações configuradas.
@@ -97,3 +101,47 @@ Esta spec **não** cobre a criação da infraestrutura AWS do zero (a VM já exi
 2. THE Gerenciador_De_Processos SHALL registrar a saída padrão e de erro do container da API em um log persistente na VM_Producao, consultável pelo Administrador por linha de comando (por exemplo, via `docker logs`) e mantendo o histórico de, no mínimo, os 7 dias mais recentes.
 3. WHEN o container da API é reiniciado pelo Gerenciador_De_Processos, THE Gerenciador_De_Processos SHALL registrar um timestamp e a causa da reinicialização de forma consultável pelo Administrador (por exemplo, via `docker inspect` ou `docker events`), distinguindo entre falha do processo dentro do container, reinicialização da VM_Producao e reinicialização manual solicitada pelo Administrador.
 4. IF a rota `/health` não responder dentro de 5 segundos ou responder com um código de status de erro, THEN THE Administrador SHALL ser capaz de identificar, a partir do log e do estado do container registrados pelo Gerenciador_De_Processos, se o processo da API está em execução no momento da consulta.
+
+### Requisito 7: Build do App_Web na VM_Producao
+
+**User Story:** Como administrador do servidor, eu quero gerar o build estático do App_Web diretamente na VM_Producao a partir do código atualizado, para que a versão publicada reflita o código do repositório sem depender de um build feito localmente.
+
+#### Critérios de Aceitação
+
+1. THE Administrador SHALL obter o código atualizado do App_Web na VM_Producao por meio de `git pull` na pasta `/app`, antes de gerar um novo build.
+2. WHEN o Administrador executa o processo de build do App_Web na VM_Producao, THE Administrador SHALL configurar a variável `EXPO_PUBLIC_API_BASE_URL` com o valor `https://appsalao.abrasel.xyz/api` (ou o caminho relativo `/api`) antes da execução do comando `npx expo export --platform web`.
+3. THE comando `npx expo export --platform web` executado na VM_Producao SHALL gerar a Pasta_De_Build_Do_App_Web contendo os arquivos estáticos do App_Web com a URL configurada na Variaveis_De_Ambiente_De_Producao do App_Web já embutida no bundle gerado.
+4. THE sistema SHALL considerar a execução do comando `npx expo export --platform web` como bem-sucedida somente quando o código de saída do comando for igual a zero e a Pasta_De_Build_Do_App_Web for gerada com um arquivo `index.html` na sua raiz.
+5. IF o comando `npx expo export --platform web` retornar um código de saída diferente de zero, THEN THE sistema SHALL considerar o build do App_Web como falho, e a versão anteriormente publicada do App_Web SHALL permanecer acessível através do domínio público sem alteração.
+
+### Requisito 8: Nginx servindo o App_Web e roteando a API por caminho
+
+**User Story:** Como administrador do servidor, eu quero que o Nginx_Existente sirva o App_Web na raiz do domínio e encaminhe apenas o caminho `/api/*` para a API, para que ambos coexistam sob o mesmo domínio sem conflito de rotas.
+
+#### Critérios de Aceitação
+
+1. WHEN o Nginx_Existente recebe uma requisição destinada ao domínio `appsalao.abrasel.xyz` com caminho que corresponde a um arquivo existente dentro da Pasta_De_Build_Do_App_Web, THE Nginx_Existente SHALL responder com o conteúdo desse arquivo estático.
+2. WHEN o Nginx_Existente recebe uma requisição destinada ao domínio `appsalao.abrasel.xyz` com caminho que não corresponde a um arquivo existente dentro da Pasta_De_Build_Do_App_Web e que não começa com o prefixo `/api/`, THE Nginx_Existente SHALL responder com o conteúdo do arquivo `index.html` da Pasta_De_Build_Do_App_Web, preservando o código de status HTTP 200 (comportamento de fallback de SPA).
+3. THE Nginx_Existente SHALL disponibilizar o App_Web via HTTPS na porta 443 utilizando o mesmo certificado TLS já configurado, válido e não expirado, para o domínio `appsalao.abrasel.xyz`.
+4. WHEN a configuração de roteamento do App_Web e do prefixo `/api/*` é adicionada ao Nginx_Existente, THE Nginx_Existente SHALL continuar servindo as demais aplicações já configuradas sem interrupção, incluindo o comportamento descrito no Requisito 2.
+5. IF a configuração do Nginx_Existente adicionada para servir o App_Web contém erro de sintaxe, THEN THE Administrador SHALL ser capaz de detectar o erro através do comando de teste de configuração do Nginx antes de recarregar o serviço.
+
+### Requisito 9: Processo repetível de deploy de uma nova versão do App_Web
+
+**User Story:** Como administrador do servidor, eu quero um processo documentado e repetível para publicar uma nova versão do App_Web, para que atualizações futuras da interface possam ser aplicadas de forma consistente, sem exigir reconfiguração manual do Nginx a cada deploy.
+
+#### Critérios de Aceitação
+
+1. THE Administrador SHALL dispor de um conjunto documentado de passos executáveis (script ou lista sequencial de comandos) que cubra, no mínimo, as seguintes etapas na VM_Producao: obter o código atualizado via `git pull` na pasta `/app`, instalar dependências, executar `npx expo export --platform web` com a variável `EXPO_PUBLIC_API_BASE_URL` configurada para o caminho de produção, e publicar o conteúdo gerado como a Pasta_De_Build_Do_App_Web servida pelo Nginx_Existente.
+2. WHEN o processo de deploy documentado do App_Web é executado sem erros em nenhuma etapa, THE App_Web SHALL ficar disponível através do domínio público com a nova versão, sem exigir reconfiguração manual do Nginx_Existente.
+3. IF qualquer etapa do processo de deploy do App_Web falhar (por exemplo, erro ao instalar dependências ou erro durante `npx expo export --platform web`), THEN THE Administrador SHALL manter a versão anterior da Pasta_De_Build_Do_App_Web acessível através do domínio público até que uma nova build seja concluída com sucesso.
+
+### Requisito 10: Verificação básica do App_Web em produção
+
+**User Story:** Como administrador do servidor, eu quero verificar que o App_Web carrega corretamente através do domínio público, para que eu possa confirmar que a publicação foi concluída com sucesso.
+
+#### Critérios de Aceitação
+
+1. WHEN o Administrador acessa a raiz do domínio `https://appsalao.abrasel.xyz/`, THE Nginx_Existente SHALL responder com o código de status HTTP 200 e um corpo contendo o `index.html` do App_Web.
+2. WHEN o `index.html` retornado pelo acesso à raiz do domínio referencia os arquivos de bundle JavaScript gerados pelo build do App_Web, THE Nginx_Existente SHALL responder a requisições subsequentes para esses arquivos de bundle com o código de status HTTP 200.
+3. IF o acesso à raiz do domínio `https://appsalao.abrasel.xyz/` não retornar o código de status HTTP 200 ou não contiver o conteúdo esperado do App_Web, THEN THE Administrador SHALL ser capaz de identificar, a partir dos logs do Nginx_Existente e da presença dos arquivos na Pasta_De_Build_Do_App_Web, a causa da falha.
