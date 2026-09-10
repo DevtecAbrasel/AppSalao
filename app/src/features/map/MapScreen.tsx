@@ -13,27 +13,25 @@ import { EventPreviewCard } from "./EventPreviewCard";
 import { PlacePreviewCard } from "./PlacePreviewCard";
 import { Minimap } from "./Minimap";
 import { POINTS_OF_INTEREST } from "./pointsOfInterest";
+import {
+  coordenadaDoEvento,
+  OrientacaoPlanta,
+  paraOrientacao,
+  PLANTAS,
+} from "./planta";
 import { ZoomPan, ZoomPanHandle } from "./ZoomPan";
 import { computeCoverScale, Point } from "./zoomMath";
 
 type Props = NativeStackScreenProps<MapStackParamList, "MapView">;
 
-const PLANTA_IMAGE = require("../../../assets/planta-salao.png");
-// Dimensões reais do arquivo (ver app/assets/planta-salao.png) — o conteúdo
-// dentro do ZoomPan é sempre renderizado nesse tamanho (nunca no tamanho,
-// menor, da viewport) e depois ESCALADO PRA BAIXO pra caber na tela. Isso é
-// o oposto do que fazíamos antes (renderizar do tamanho da viewport e
-// escalar pra CIMA ao dar zoom) — escalar uma imagem pequena pra cima é o
-// que causava o borrão ao dar zoom, tanto no mobile quanto no desktop.
+// A planta é sempre renderizada dentro do ZoomPan no tamanho NATIVO do
+// arquivo (nunca no tamanho, menor, da viewport) e depois ESCALADA PRA BAIXO
+// pra caber na tela. Isso é o oposto de renderizar do tamanho da viewport e
+// escalar pra CIMA ao dar zoom — era isso que causava o borrão ao ampliar.
 //
-// O PNG é gerado direto do PDF VETORIAL da planta (PlantaSalãoAbrasel), no
-// mesmo recorte de sempre — página 1, x=66,5 y=200,0 w=1566,96 h=546,77 pt —
-// só que a 3x da resolução antiga (era 2350x820). Como o recorte é idêntico,
-// as coordenadas normalizadas dos pins (0..1) continuam valendo sem mexer em
-// nada. Se um dia a memória apertar (7050x2460 decodifica pra ~69 MB), dá pra
-// reexportar o MESMO recorte a 4700x1640 e só trocar os dois números abaixo.
-const PLANTA_NATIVE_WIDTH = 7050;
-const PLANTA_NATIVE_HEIGHT = 2460;
+// Os dois arquivos e a conversão de coordenadas entre eles moram em
+// `planta.ts`; aqui só se escolhe qual usar.
+//
 // Quanto além do "cobrir a tela" (zoom mínimo) o usuário pode ampliar.
 const MAX_ZOOM_MULTIPLIER = 4;
 
@@ -67,8 +65,10 @@ function shortMarkerLabel(locationName: string): string {
 
 // Cada "sala" vira um pin. Quando mais de um evento acontece na mesma sala,
 // mostramos o que está ao vivo agora ou, se nenhum, o próximo a começar.
-function pickRoomPins(events: EventItem[]): RoomPin[] {
-  const withCoords = events.filter((e) => e.locationMapX != null && e.locationMapY != null);
+function pickRoomPins(events: EventItem[], orientacao: OrientacaoPlanta): RoomPin[] {
+  // A posição pode vir da planta (arenas) ou do próprio evento — quem decide
+  // é `coordenadaDoEvento`; aqui só descartamos quem não tem nenhuma das duas.
+  const withCoords = events.filter((e) => coordenadaDoEvento(e, orientacao) !== null);
   const byLocation = new Map<string, EventItem[]>();
 
   for (const event of withCoords) {
@@ -91,11 +91,14 @@ function pickRoomPins(events: EventItem[]): RoomPin[] {
     const activeEvent = live ?? nextUpcoming ?? mostRecentEnded;
     if (!activeEvent) continue;
 
+    const ponto = coordenadaDoEvento(activeEvent, orientacao);
+    if (!ponto) continue;
+
     pins.push({
       key: locationName,
       locationName,
-      x: activeEvent.locationMapX as number,
-      y: activeEvent.locationMapY as number,
+      x: ponto.x,
+      y: ponto.y,
       activeEvent,
     });
   }
@@ -116,7 +119,17 @@ export function MapScreen({ route, navigation }: Props) {
   const [liveView, setLiveView] = useState<{ scale: number; center: Point } | null>(null);
   const hasCenteredRef = useRef(false);
 
+  // TEMPORÁRIO — comparação de orientação da planta. Existe só para o
+  // organizador ver as duas versões lado a lado e escolher; depois da decisão
+  // isto vira uma constante e o botão sai da tela.
+  const [orientacao, setOrientacao] = useState<OrientacaoPlanta>("horizontal");
+
   const zoomPanRef = useRef<ZoomPanHandle>(null);
+
+  const planta = PLANTAS[orientacao];
+  const PLANTA_IMAGE = planta.image;
+  const PLANTA_NATIVE_WIDTH = planta.width;
+  const PLANTA_NATIVE_HEIGHT = planta.height;
 
   const content = { width: PLANTA_NATIVE_WIDTH, height: PLANTA_NATIVE_HEIGHT };
 
@@ -135,23 +148,37 @@ export function MapScreen({ route, navigation }: Props) {
     loadFavorites();
   }, [load, loadFavorites]);
 
-  const pins = useMemo(() => pickRoomPins(events), [events]);
+  const pins = useMemo(() => pickRoomPins(events, orientacao), [events, orientacao]);
+
+  // Os pontos de interesse são medidos na planta horizontal; a vertical sai
+  // deles por rotação (ver planta.ts).
+  const poisNaOrientacao = useMemo(
+    () => POINTS_OF_INTEREST.map((poi) => ({ ...poi, ...paraOrientacao(poi, orientacao) })),
+    [orientacao]
+  );
 
   // Palestra favoritada mais relevante agora: a que já começou (se houver)
   // ou, senão, a próxima a começar — é nela que focamos o mapa ao abrir a
   // tela, pra já mostrar de cara a arena/estande de quem o usuário marcou.
   const nextFavoriteEvent = useMemo(() => {
     const now = new Date();
-    const withCoords = favorites.filter((e) => e.locationMapX != null && e.locationMapY != null);
+    const withCoords = favorites.filter((e) => coordenadaDoEvento(e, orientacao) !== null);
     const live = withCoords.find((e) => getEventStatus(e, now) === "live");
     if (live) return live;
 
     return withCoords
       .filter((e) => getEventStatus(e, now) === "upcoming")
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
-  }, [favorites]);
+  }, [favorites, orientacao]);
 
   const focusEventId = route.params?.focusEventId;
+
+  // Trocar de orientação troca o sistema de coordenadas inteiro: o
+  // enquadramento anterior não quer dizer nada no novo. Liberar o "já
+  // centralizou" faz o efeito abaixo reenquadrar do zero.
+  useEffect(() => {
+    hasCenteredRef.current = false;
+  }, [orientacao]);
 
   // Enquadramento inicial: sempre na escala "cover" (nunca a planta inteira
   // encolhida). Se não veio um foco explícito (navegação a partir do
@@ -164,19 +191,30 @@ export function MapScreen({ route, navigation }: Props) {
 
     hasCenteredRef.current = true;
 
-    if (nextFavoriteEvent) {
+    const alvo = nextFavoriteEvent && coordenadaDoEvento(nextFavoriteEvent, orientacao);
+    if (nextFavoriteEvent && alvo) {
       const pin = pins.find((p) => p.locationName === nextFavoriteEvent.locationName);
       if (pin) setSelection({ kind: "event", key: pin.key });
 
       zoomPanRef.current?.centerOn(
-        (nextFavoriteEvent.locationMapX as number) * PLANTA_NATIVE_WIDTH,
-        (nextFavoriteEvent.locationMapY as number) * PLANTA_NATIVE_HEIGHT,
+        alvo.x * PLANTA_NATIVE_WIDTH,
+        alvo.y * PLANTA_NATIVE_HEIGHT,
         coverScale
       );
     } else {
       zoomPanRef.current?.centerOn(PLANTA_NATIVE_WIDTH / 2, PLANTA_NATIVE_HEIGHT / 2, coverScale);
     }
-  }, [viewport, coverScale, focusEventId, favoritesStatus, nextFavoriteEvent, pins]);
+  }, [
+    viewport,
+    coverScale,
+    focusEventId,
+    favoritesStatus,
+    nextFavoriteEvent,
+    pins,
+    orientacao,
+    PLANTA_NATIVE_WIDTH,
+    PLANTA_NATIVE_HEIGHT,
+  ]);
 
   useEffect(() => {
     if (!focusEventId || pins.length === 0 || !viewport) return;
@@ -187,7 +225,7 @@ export function MapScreen({ route, navigation }: Props) {
       setSelection({ kind: "event", key: pin.key });
       zoomPanRef.current?.centerOn(pin.x * PLANTA_NATIVE_WIDTH, pin.y * PLANTA_NATIVE_HEIGHT, coverScale);
     }
-  }, [focusEventId, pins, viewport, coverScale]);
+  }, [focusEventId, pins, viewport, coverScale, PLANTA_NATIVE_WIDTH, PLANTA_NATIVE_HEIGHT]);
 
   if (status === "loading" && events.length === 0) {
     return <LoadingState label="Carregando mapa..." />;
@@ -204,7 +242,7 @@ export function MapScreen({ route, navigation }: Props) {
   const selectedPin =
     selection?.kind === "event" ? pins.find((p) => p.key === selection.key) : undefined;
   const selectedPoi =
-    selection?.kind === "poi" ? POINTS_OF_INTEREST.find((p) => p.key === selection.key) : undefined;
+    selection?.kind === "poi" ? poisNaOrientacao.find((p) => p.key === selection.key) : undefined;
 
   return (
     <View style={styles.container}>
@@ -243,7 +281,7 @@ export function MapScreen({ route, navigation }: Props) {
                   onPress={() => setSelection({ kind: "event", key: pin.key })}
                 />
               ))}
-              {POINTS_OF_INTEREST.map((poi) => (
+              {poisNaOrientacao.map((poi) => (
                 <PlantaPin
                   key={`poi-${poi.key}`}
                   x={poi.x}
@@ -273,6 +311,26 @@ export function MapScreen({ route, navigation }: Props) {
             />
           </View>
         )}
+
+        {/* TEMPORÁRIO — alterna entre as duas versões da planta para a
+            escolha da orientação. Sai da tela junto com o estado `orientacao`
+            assim que a decisão for tomada. */}
+        <Pressable
+          style={styles.orientacaoBotao}
+          onPress={() =>
+            setOrientacao((o) => (o === "horizontal" ? "vertical" : "horizontal"))
+          }
+          accessibilityRole="button"
+          accessibilityLabel={
+            orientacao === "horizontal"
+              ? "Ver a planta na vertical"
+              : "Ver a planta na horizontal"
+          }
+        >
+          <Text style={styles.orientacaoTexto}>
+            {orientacao === "horizontal" ? "Ver vertical" : "Ver horizontal"}
+          </Text>
+        </Pressable>
 
         <View style={styles.zoomControls}>
           <Pressable
@@ -327,6 +385,26 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: spacing.sm,
     top: spacing.sm,
+  },
+  // TEMPORÁRIO — botão de comparação de orientação.
+  orientacaoBotao: {
+    position: "absolute",
+    right: spacing.sm,
+    top: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.marinho,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  orientacaoTexto: {
+    color: colors.textOnDark,
+    fontSize: 13,
+    fontWeight: "700",
   },
   zoomControls: {
     position: "absolute",

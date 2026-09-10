@@ -1,13 +1,14 @@
 // Estandes/ativações voltados ao público que não têm palestra com horário
 // marcado (por isso não vêm da tabela de eventos) — só um pin informativo
-// com o nome do local. Coordenadas NORMALIZADAS (0..1) sobre a planta real
-// (app/assets/planta-salao.png) — por serem normalizadas, continuam valendo
-// mesmo quando a resolução do arquivo muda, desde que o RECORTE seja o mesmo.
+// com o nome do local.
 //
-// Observação: não encontramos "Mesa de Compradores" nem "Área VIP" com
-// rótulo nessa planta (a documentação do estande cita que a Mesa de
-// Compradores mudou de lugar) — ficaram de fora até termos a localização
-// confirmada.
+// Coordenadas NORMALIZADAS (0..1) medidas sobre a planta HORIZONTAL
+// (app/assets/planta-salao-h.png). Por serem normalizadas, continuam valendo
+// se a resolução do arquivo mudar, desde que o RECORTE seja o mesmo. A versão
+// vertical é derivada por rotação em `planta.ts` — não meça de novo lá.
+//
+// Refeitas para a planta de 2026 (Mapa-MAP-01): os nove pontos existem também
+// no desenho novo, mas todos mudaram de lugar em relação à planta anterior.
 export interface PointOfInterest {
   key: string;
   label: string;
@@ -18,13 +19,13 @@ export interface PointOfInterest {
 }
 
 export const POINTS_OF_INTEREST: PointOfInterest[] = [
-  { key: "estande-abrasel", label: "Estande Abrasel", marker: "AB", x: 0.1472, y: 0.6732 },
-  { key: "sebrae", label: "Sebrae", marker: "SB", x: 0.1923, y: 0.6732 },
-  { key: "ambev-estande", label: "Estande Ambev", marker: "AM", x: 0.3277, y: 0.789 },
-  { key: "cozinha-futuro", label: "Cozinha/Restaurante do Futuro", marker: "CF", x: 0.1574, y: 0.911 },
-  { key: "99food", label: "99Food", marker: "99", x: 0.2451, y: 0.9024 },
-  { key: "google-samsung", label: "Google / Samsung", marker: "GS", x: 0.8298, y: 0.6622 },
-  { key: "stone", label: "Stone", marker: "ST", x: 0.6936, y: 0.8963 },
-  { key: "ifood", label: "iFood", marker: "IF", x: 0.883, y: 0.9085 },
-  { key: "meeting-point", label: "Meeting Point", marker: "MP", x: 0.634, y: 0.7073 },
+  { key: "estande-abrasel", label: "Estande Abrasel", marker: "AB", x: 0.873, y: 0.461 },
+  { key: "sebrae", label: "Sebrae", marker: "SB", x: 0.132, y: 0.177 },
+  { key: "ambev-estande", label: "Estande Ambev", marker: "AM", x: 0.303, y: 0.479 },
+  { key: "cozinha-futuro", label: "Cozinha/Restaurante do Futuro", marker: "CF", x: 0.072, y: 0.774 },
+  { key: "99food", label: "99Food", marker: "99", x: 0.196, y: 0.765 },
+  { key: "google-samsung", label: "Google / Samsung", marker: "GS", x: 0.924, y: 0.16 },
+  { key: "stone", label: "Stone", marker: "ST", x: 0.752, y: 0.767 },
+  { key: "ifood", label: "iFood", marker: "IF", x: 0.949, y: 0.767 },
+  { key: "meeting-point", label: "Meeting Point", marker: "MP", x: 0.659, y: 0.29 },
 ];
