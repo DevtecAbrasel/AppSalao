@@ -200,6 +200,23 @@ export function MapScreen({ route, navigation }: Props) {
 
   const focusEventId = route.params?.focusEventId;
   const focusExpositorKey = route.params?.focusExpositorKey;
+  const focusPoiKey = route.params?.focusPoiKey;
+
+  // Mesmo caminho do expositor, para um ponto de interesse já existente — é
+  // assim que a tela de Consultorias mostra onde fica o estande da Abrasel.
+  useEffect(() => {
+    if (!focusPoiKey || !viewport) return;
+    const poi = POINTS_OF_INTEREST.find((p) => p.key === focusPoiKey);
+    if (!poi) return;
+
+    hasCenteredRef.current = true;
+    setSelection({ kind: "poi", key: poi.key });
+    zoomPanRef.current?.centerOn(
+      poi.x * PLANTA_NATIVE_WIDTH,
+      poi.y * PLANTA_NATIVE_HEIGHT,
+      Math.min(maxScale, coverScale * ZOOM_DO_EXPOSITOR)
+    );
+  }, [focusPoiKey, viewport, coverScale, maxScale, PLANTA_NATIVE_WIDTH, PLANTA_NATIVE_HEIGHT]);
 
   // Chegou pela lista de expositores: enquadra o stand e o deixa selecionado,
   // com o cartão mostrando o nome. Depois disso o mapa é o mapa de sempre —
@@ -238,7 +255,8 @@ export function MapScreen({ route, navigation }: Props) {
   // pela ENTRADA — que é por onde a pessoa chega e o ponto de referência que
   // ela tem no corpo quando pega o celular no salão.
   useEffect(() => {
-    if (!viewport || hasCenteredRef.current || focusEventId || focusExpositorKey) return;
+    if (!viewport || hasCenteredRef.current || focusEventId || focusExpositorKey || focusPoiKey)
+      return;
     if (favoritesStatus === "loading") return; // espera decidir com a lista certa
 
     hasCenteredRef.current = true;

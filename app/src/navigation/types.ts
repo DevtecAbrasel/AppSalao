@@ -21,7 +21,9 @@ export type FavoritesStackParamList = {
 };
 
 export type MapStackParamList = {
-  MapView: { focusEventId?: string; focusExpositorKey?: string } | undefined;
+  MapView:
+    | { focusEventId?: string; focusExpositorKey?: string; focusPoiKey?: string }
+    | undefined;
   EventDetail: { eventId: string };
   Notifications: undefined;
 };
@@ -30,6 +32,13 @@ export type MapStackParamList = {
 // Ambev?"), e não um detalhe de outra tela. Daqui se salta para o mapa.
 export type ExhibitorsStackParamList = {
   ExhibitorsList: undefined;
+};
+
+// Plantão de consultorias no estande da Abrasel. Uma tela só, mas com aba
+// própria: é uma oferta que vale durante os dois dias inteiros e alguém pode
+// querer voltar nela a qualquer momento.
+export type ConsultingStackParamList = {
+  ConsultingHome: undefined;
 };
 
 // Painel administrativo: separado da experiência normal do app, numa aba
@@ -46,6 +55,7 @@ export type RootTabParamList = {
   Favoritos: NavigatorScreenParams<FavoritesStackParamList>;
   Mapa: NavigatorScreenParams<MapStackParamList>;
   Expositores: NavigatorScreenParams<ExhibitorsStackParamList>;
+  Consultorias: NavigatorScreenParams<ConsultingStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 
