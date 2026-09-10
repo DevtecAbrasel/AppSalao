@@ -6,7 +6,6 @@ import { AgendaStackNavigator } from "./AgendaStack";
 import { FavoritesStackNavigator } from "./FavoritesStack";
 import { MapStackNavigator } from "./MapStack";
 import { ExhibitorsStackNavigator } from "./ExhibitorsStack";
-import { ConsultingStackNavigator } from "./ConsultingStack";
 import { AdminStackNavigator } from "./AdminStack";
 import { useAuthStore } from "../features/auth/store";
 import { RootTabParamList } from "./types";
@@ -18,7 +17,6 @@ const ICONS: Record<keyof RootTabParamList, IconName> = {
   Favoritos: "star",
   Mapa: "map",
   Expositores: "storefront",
-  Consultorias: "chat",
   Admin: "settings",
 };
 
@@ -70,7 +68,6 @@ export function RootTabs() {
       <Tab.Screen name="Favoritos" component={FavoritesStackNavigator} />
       <Tab.Screen name="Mapa" component={MapStackNavigator} />
       <Tab.Screen name="Expositores" component={ExhibitorsStackNavigator} />
-      <Tab.Screen name="Consultorias" component={ConsultingStackNavigator} />
       {isAdmin && <Tab.Screen name="Admin" component={AdminStackNavigator} />}
     </Tab.Navigator>
   );

@@ -1,25 +1,23 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors, radius, spacing } from "../../constants/theme";
 import { Icon } from "../../components/Icon";
+import { abrirNaAbaAtual, HeaderNavigation } from "../../navigation/HeaderActions";
 import { useNotificationsStore } from "./store";
 
-// Os três stacks (Agenda, Favoritos, Mapa) registram estas mesmas rotas, então
-// o sino funciona igual em qualquer um deles sem saber em qual está.
-type BellNavigation = NativeStackNavigationProp<{
-  Notifications: undefined;
-  EventDetail: { eventId: string };
-}>;
+interface Props {
+  /** A navegação da tela — ver a explicação em `HeaderActions`. */
+  navigation: HeaderNavigation;
+}
 
-export function NotificationBell() {
-  const navigation = useNavigation<BellNavigation>();
+// Todos os stacks que exibem o cabeçalho registram a rota "Notifications",
+// então o sino abre a lista dentro da aba atual, sem trocá-la.
+export function NotificationBell({ navigation }: Props) {
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
   const hasUnread = unreadCount > 0;
 
   return (
     <Pressable
-      onPress={() => navigation.navigate("Notifications")}
+      onPress={() => abrirNaAbaAtual(navigation, "Notifications")}
       hitSlop={8}
       style={styles.button}
       accessibilityRole="button"
