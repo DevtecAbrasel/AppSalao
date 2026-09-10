@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radius, spacing } from "../../constants/theme";
-import { Icon } from "../../components/Icon";
+import { StyleSheet, Text, View } from "react-native";
+import { colors, radius } from "../../constants/theme";
+import { HeaderAction } from "../../navigation/HeaderAction";
 import { abrirNaAbaAtual, HeaderNavigation } from "../../navigation/HeaderActions";
 import { useNotificationsStore } from "./store";
 
@@ -16,41 +16,36 @@ export function NotificationBell({ navigation }: Props) {
   const hasUnread = unreadCount > 0;
 
   return (
-    <Pressable
+    <HeaderAction
+      icon="bell"
+      label="Avisos"
+      // Sino apagado quando não há nada — o estado "sem novidade" precisa ser
+      // visível sem depender só da ausência do contador.
+      color={hasUnread ? colors.text : colors.textMuted}
       onPress={() => abrirNaAbaAtual(navigation, "Notifications")}
-      hitSlop={8}
-      style={styles.button}
-      accessibilityRole="button"
       accessibilityLabel={
         hasUnread
           ? `Notificações, ${unreadCount} não ${unreadCount === 1 ? "lida" : "lidas"}`
           : "Notificações"
       }
-    >
-      {/* Sino apagado quando não há nada — o estado "sem novidade" precisa
-          ser visível sem depender só da ausência do badge. */}
-      <Icon name="bell" size={22} color={hasUnread ? colors.text : colors.textMuted} />
-      {hasUnread && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
-        </View>
-      )}
-    </Pressable>
+      badge={
+        hasUnread ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+          </View>
+        ) : undefined
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: spacing.xs,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   badge: {
     position: "absolute",
-    top: -4,
-    right: -2,
-    minWidth: 17,
-    height: 17,
+    top: -5,
+    right: -7,
+    minWidth: 16,
+    height: 16,
     paddingHorizontal: 4,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
@@ -61,8 +56,8 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: "700",
-    lineHeight: 13,
+    lineHeight: 12,
   },
 });

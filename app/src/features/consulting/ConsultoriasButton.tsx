@@ -1,6 +1,4 @@
-import { Pressable, StyleSheet } from "react-native";
-import { colors, spacing } from "../../constants/theme";
-import { Icon } from "../../components/Icon";
+import { HeaderAction } from "../../navigation/HeaderAction";
 import { abrirNaAbaAtual, HeaderNavigation } from "../../navigation/HeaderActions";
 
 interface Props {
@@ -13,22 +11,11 @@ interface Props {
 // devolve ao lugar de origem.
 export function ConsultoriasButton({ navigation }: Props) {
   return (
-    <Pressable
+    <HeaderAction
+      icon="chat"
+      label="Consultoria"
       onPress={() => abrirNaAbaAtual(navigation, "Consultorias")}
-      hitSlop={8}
-      style={styles.button}
-      accessibilityRole="button"
       accessibilityLabel="Consultorias com especialistas"
-    >
-      <Icon name="chat" size={21} color={colors.textMuted} />
-    </Pressable>
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: spacing.xs,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
