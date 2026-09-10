@@ -36,7 +36,12 @@ function agrupar(lista: Expositor[]): Secao[] {
     .map(([title, data]) => ({ title, data }));
 }
 
-const ORDENADOS = [...EXPOSITORES].sort((a, b) =>
+// Só entram na lista os que dá para levar ao mapa. Os outros 23 continuam
+// registrados em `expositores.ts` — eles existem no evento e a transcrição do
+// impresso está completa lá —, mas um nome que não leva a lugar nenhum não
+// ajuda quem está de pé no salão procurando um stand. No dia em que a planta
+// os posicionar, some este filtro e eles aparecem.
+const ORDENADOS = EXPOSITORES.filter(temLocalizacao).sort((a, b) =>
   normalizarTexto(a.nome).localeCompare(normalizarTexto(b.nome))
 );
 
@@ -106,37 +111,25 @@ export function ExpositoresScreen() {
         renderSectionHeader={({ section }) => (
           <Text style={styles.secaoTitulo}>{section.title}</Text>
         )}
-        renderItem={({ item }) => {
-          const localizavel = temLocalizacao(item);
-          return (
-            <Pressable
-              style={[styles.item, !localizavel && styles.itemSemMapa]}
-              onPress={() => abrirNoMapa(item)}
-              disabled={!localizavel}
-              accessibilityRole={localizavel ? "button" : undefined}
-              accessibilityLabel={
-                localizavel
-                  ? `${item.nome}. Ver no mapa.`
-                  : `${item.nome}. Sem localização no mapa.`
-              }
-            >
-              <View style={styles.itemTexto}>
-                <Text style={styles.itemNome}>{item.nome}</Text>
-                {item.nomeNaPlanta && (
-                  <Text style={styles.itemNaPlanta}>No mapa: {item.nomeNaPlanta}</Text>
-                )}
-              </View>
-              {localizavel ? (
-                <View style={styles.itemAcao}>
-                  <Icon name="map" size={18} color={colors.primary} />
-                  <Icon name="chevron-right" size={16} color={colors.primary} />
-                </View>
-              ) : (
-                <Text style={styles.itemSemMapaTexto}>sem local</Text>
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.item}
+            onPress={() => abrirNoMapa(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.nome}. Ver no mapa.`}
+          >
+            <View style={styles.itemTexto}>
+              <Text style={styles.itemNome}>{item.nome}</Text>
+              {item.nomeNaPlanta && (
+                <Text style={styles.itemNaPlanta}>No mapa: {item.nomeNaPlanta}</Text>
               )}
-            </Pressable>
-          );
-        }}
+            </View>
+            <View style={styles.itemAcao}>
+              <Icon name="map" size={18} color={colors.primary} />
+              <Icon name="chevron-right" size={16} color={colors.primary} />
+            </View>
+          </Pressable>
+        )}
         ListHeaderComponent={
           <Text style={styles.contagem}>
             {totalFiltrado} {totalFiltrado === 1 ? "expositor" : "expositores"}
@@ -215,12 +208,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xs,
   },
-  // Sem stand no desenho: o item continua na lista (o expositor existe), mas
-  // não finge ser tocável.
-  itemSemMapa: {
-    borderLeftColor: colors.border,
-    backgroundColor: colors.surfaceCream,
-  },
   itemTexto: {
     flex: 1,
   },
@@ -238,9 +225,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-  },
-  itemSemMapaTexto: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
 });
