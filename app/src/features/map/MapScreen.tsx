@@ -13,27 +13,27 @@ import { EventPreviewCard } from "./EventPreviewCard";
 import { PlacePreviewCard } from "./PlacePreviewCard";
 import { Minimap } from "./Minimap";
 import { POINTS_OF_INTEREST } from "./pointsOfInterest";
+import {
+  computeFitScale,
+  coordenadaDoEvento,
+  enquadrarRegiao,
+  ModoMapa,
+  PLANTA,
+  REGIOES,
+} from "./planta";
 import { ZoomPan, ZoomPanHandle } from "./ZoomPan";
 import { computeCoverScale, Point } from "./zoomMath";
 
 type Props = NativeStackScreenProps<MapStackParamList, "MapView">;
 
-const PLANTA_IMAGE = require("../../../assets/planta-salao.png");
-// Dimensões reais do arquivo (ver app/assets/planta-salao.png) — o conteúdo
-// dentro do ZoomPan é sempre renderizado nesse tamanho (nunca no tamanho,
-// menor, da viewport) e depois ESCALADO PRA BAIXO pra caber na tela. Isso é
-// o oposto do que fazíamos antes (renderizar do tamanho da viewport e
-// escalar pra CIMA ao dar zoom) — escalar uma imagem pequena pra cima é o
-// que causava o borrão ao dar zoom, tanto no mobile quanto no desktop.
+// A planta é sempre renderizada dentro do ZoomPan no tamanho NATIVO do
+// arquivo (nunca no tamanho, menor, da viewport) e depois ESCALADA PRA BAIXO
+// pra caber na tela. Isso é o oposto de renderizar do tamanho da viewport e
+// escalar pra CIMA ao dar zoom — era isso que causava o borrão ao ampliar.
 //
-// O PNG é gerado direto do PDF VETORIAL da planta (PlantaSalãoAbrasel), no
-// mesmo recorte de sempre — página 1, x=66,5 y=200,0 w=1566,96 h=546,77 pt —
-// só que a 3x da resolução antiga (era 2350x820). Como o recorte é idêntico,
-// as coordenadas normalizadas dos pins (0..1) continuam valendo sem mexer em
-// nada. Se um dia a memória apertar (7050x2460 decodifica pra ~69 MB), dá pra
-// reexportar o MESMO recorte a 4700x1640 e só trocar os dois números abaixo.
-const PLANTA_NATIVE_WIDTH = 7050;
-const PLANTA_NATIVE_HEIGHT = 2460;
+// Os dois arquivos e a conversão de coordenadas entre eles moram em
+// `planta.ts`; aqui só se escolhe qual usar.
+//
 // Quanto além do "cobrir a tela" (zoom mínimo) o usuário pode ampliar.
 const MAX_ZOOM_MULTIPLIER = 4;
 
@@ -68,7 +68,9 @@ function shortMarkerLabel(locationName: string): string {
 // Cada "sala" vira um pin. Quando mais de um evento acontece na mesma sala,
 // mostramos o que está ao vivo agora ou, se nenhum, o próximo a começar.
 function pickRoomPins(events: EventItem[]): RoomPin[] {
-  const withCoords = events.filter((e) => e.locationMapX != null && e.locationMapY != null);
+  // A posição pode vir da planta (arenas) ou do próprio evento — quem decide
+  // é `coordenadaDoEvento`; aqui só descartamos quem não tem nenhuma das duas.
+  const withCoords = events.filter((e) => coordenadaDoEvento(e) !== null);
   const byLocation = new Map<string, EventItem[]>();
 
   for (const event of withCoords) {
@@ -91,11 +93,14 @@ function pickRoomPins(events: EventItem[]): RoomPin[] {
     const activeEvent = live ?? nextUpcoming ?? mostRecentEnded;
     if (!activeEvent) continue;
 
+    const ponto = coordenadaDoEvento(activeEvent);
+    if (!ponto) continue;
+
     pins.push({
       key: locationName,
       locationName,
-      x: activeEvent.locationMapX as number,
-      y: activeEvent.locationMapY as number,
+      x: ponto.x,
+      y: ponto.y,
       activeEvent,
     });
   }
@@ -116,14 +121,39 @@ export function MapScreen({ route, navigation }: Props) {
   const [liveView, setLiveView] = useState<{ scale: number; center: Point } | null>(null);
   const hasCenteredRef = useRef(false);
 
+  // TEMPORÁRIO — comparação entre o comportamento antigo e o pensado para
+  // celular em pé. Existe só para a escolha ser feita olhando; depois vira uma
+  // constante e o botão sai da tela.
+  const [modo, setModo] = useState<ModoMapa>("classico");
+
   const zoomPanRef = useRef<ZoomPanHandle>(null);
+
+  const PLANTA_IMAGE = PLANTA.image;
+  const PLANTA_NATIVE_WIDTH = PLANTA.width;
+  const PLANTA_NATIVE_HEIGHT = PLANTA.height;
 
   const content = { width: PLANTA_NATIVE_WIDTH, height: PLANTA_NATIVE_HEIGHT };
 
-  // Escala mínima: a planta sempre cobre a viewport inteira, nunca menos —
-  // é a garantia de que nunca aparece fundo vazio ao redor do mapa.
+  // "cover" = a planta cobre a viewport inteira; "fit" = a planta inteira cabe
+  // na viewport. Numa tela de celular em pé os dois estão MUITO longe um do
+  // outro (a planta é 3,6:1 e a tela ~0,55:1), e é justamente essa distância
+  // que decide se o usuário consegue ou não ver o conjunto.
   const coverScale = viewport ? computeCoverScale(viewport, content) : 1;
+  const fitScale = viewport ? computeFitScale(viewport, content) : 1;
+
+  // No modo clássico o mínimo é "cover": nunca aparece fundo vazio, mas
+  // também nunca dá para afastar o suficiente para ver a planta toda. No modo
+  // portrait o mínimo é "fit" — aceita-se a margem vazia em troca de existir
+  // uma visão geral de verdade.
+  const minScale = modo === "portrait" ? fitScale : coverScale;
   const maxScale = coverScale * MAX_ZOOM_MULTIPLIER;
+
+  // O portrait abre na escala "cover", igual ao clássico — e isso é
+  // deliberado. Abrir mais afastado mostrava mais planta, mas deixava 41% da
+  // tela como fundo vazio, e dois dedos apoiados nessa faixa pinçam sobre
+  // nada. A visão geral continua disponível (atalho "Tudo" e zoom para fora);
+  // ela deixou de ser o estado inicial.
+  const escalaDeAbertura = coverScale;
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -142,7 +172,7 @@ export function MapScreen({ route, navigation }: Props) {
   // tela, pra já mostrar de cara a arena/estande de quem o usuário marcou.
   const nextFavoriteEvent = useMemo(() => {
     const now = new Date();
-    const withCoords = favorites.filter((e) => e.locationMapX != null && e.locationMapY != null);
+    const withCoords = favorites.filter((e) => coordenadaDoEvento(e) !== null);
     const live = withCoords.find((e) => getEventStatus(e, now) === "live");
     if (live) return live;
 
@@ -153,30 +183,58 @@ export function MapScreen({ route, navigation }: Props) {
 
   const focusEventId = route.params?.focusEventId;
 
-  // Enquadramento inicial: sempre na escala "cover" (nunca a planta inteira
-  // encolhida). Se não veio um foco explícito (navegação a partir do
-  // detalhe de um evento), centraliza na próxima palestra favoritada; sem
-  // favoritos (ou ainda carregando), centraliza a planta inteira — cortada
-  // simetricamente, já que cover nunca mostra tudo numa tela desproporcional.
+  // Trocar de modo muda os limites de zoom: o enquadramento anterior pode nem
+  // ser mais alcançável. Liberar o "já centralizou" faz reenquadrar do zero.
+  useEffect(() => {
+    hasCenteredRef.current = false;
+  }, [modo]);
+
+  // Enquadramento inicial. Se não veio um foco explícito (navegação a partir
+  // do detalhe de um evento), centraliza na próxima palestra favoritada; sem
+  // favoritos, no modo clássico centraliza a planta inteira e no portrait abre
+  // pela ENTRADA — que é por onde a pessoa chega e o ponto de referência que
+  // ela tem no corpo quando pega o celular no salão.
   useEffect(() => {
     if (!viewport || hasCenteredRef.current || focusEventId) return;
     if (favoritesStatus === "loading") return; // espera decidir com a lista certa
 
     hasCenteredRef.current = true;
 
-    if (nextFavoriteEvent) {
+    const alvo = nextFavoriteEvent && coordenadaDoEvento(nextFavoriteEvent);
+    if (nextFavoriteEvent && alvo) {
       const pin = pins.find((p) => p.locationName === nextFavoriteEvent.locationName);
       if (pin) setSelection({ kind: "event", key: pin.key });
 
       zoomPanRef.current?.centerOn(
-        (nextFavoriteEvent.locationMapX as number) * PLANTA_NATIVE_WIDTH,
-        (nextFavoriteEvent.locationMapY as number) * PLANTA_NATIVE_HEIGHT,
-        coverScale
+        alvo.x * PLANTA_NATIVE_WIDTH,
+        alvo.y * PLANTA_NATIVE_HEIGHT,
+        escalaDeAbertura
       );
+    } else if (modo === "portrait") {
+      const entrada = REGIOES.find((r) => r.key === "entrada") ?? REGIOES[0];
+      const { center, scale } = enquadrarRegiao(entrada, viewport, content, minScale, maxScale);
+      zoomPanRef.current?.centerOn(center.x, center.y, scale);
     } else {
-      zoomPanRef.current?.centerOn(PLANTA_NATIVE_WIDTH / 2, PLANTA_NATIVE_HEIGHT / 2, coverScale);
+      zoomPanRef.current?.centerOn(
+        PLANTA_NATIVE_WIDTH / 2,
+        PLANTA_NATIVE_HEIGHT / 2,
+        escalaDeAbertura
+      );
     }
-  }, [viewport, coverScale, focusEventId, favoritesStatus, nextFavoriteEvent, pins]);
+  }, [
+    viewport,
+    escalaDeAbertura,
+    minScale,
+    maxScale,
+    focusEventId,
+    favoritesStatus,
+    nextFavoriteEvent,
+    pins,
+    modo,
+    content,
+    PLANTA_NATIVE_WIDTH,
+    PLANTA_NATIVE_HEIGHT,
+  ]);
 
   useEffect(() => {
     if (!focusEventId || pins.length === 0 || !viewport) return;
@@ -185,9 +243,13 @@ export function MapScreen({ route, navigation }: Props) {
     if (pin) {
       hasCenteredRef.current = true;
       setSelection({ kind: "event", key: pin.key });
-      zoomPanRef.current?.centerOn(pin.x * PLANTA_NATIVE_WIDTH, pin.y * PLANTA_NATIVE_HEIGHT, coverScale);
+      zoomPanRef.current?.centerOn(
+        pin.x * PLANTA_NATIVE_WIDTH,
+        pin.y * PLANTA_NATIVE_HEIGHT,
+        escalaDeAbertura
+      );
     }
-  }, [focusEventId, pins, viewport, coverScale]);
+  }, [focusEventId, pins, viewport, escalaDeAbertura, PLANTA_NATIVE_WIDTH, PLANTA_NATIVE_HEIGHT]);
 
   if (status === "loading" && events.length === 0) {
     return <LoadingState label="Carregando mapa..." />;
@@ -206,6 +268,19 @@ export function MapScreen({ route, navigation }: Props) {
   const selectedPoi =
     selection?.kind === "poi" ? POINTS_OF_INTEREST.find((p) => p.key === selection.key) : undefined;
 
+  // Pinos somem na visão geral: a essa distância eles viram um amontoado que
+  // esconde o próprio desenho, e nenhum deles é legível de qualquer forma.
+  const mostrarPinos = modo !== "portrait" || !liveView || liveView.scale > fitScale * 1.6;
+
+  const irParaRegiao = (key: string) => {
+    if (!viewport) return;
+    const regiao = REGIOES.find((r) => r.key === key);
+    if (!regiao) return;
+    const { center, scale } = enquadrarRegiao(regiao, viewport, content, minScale, maxScale);
+    setSelection(null);
+    zoomPanRef.current?.centerOn(center.x, center.y, scale);
+  };
+
   return (
     <View style={styles.container}>
       {/* flex: 1 faz o mapa ocupar a tela toda (e não uma faixinha no meio,
@@ -220,7 +295,7 @@ export function MapScreen({ route, navigation }: Props) {
             viewportHeight={viewport.height}
             contentWidth={PLANTA_NATIVE_WIDTH}
             contentHeight={PLANTA_NATIVE_HEIGHT}
-            minScale={coverScale}
+            minScale={minScale}
             maxScale={maxScale}
             onViewportChange={setLiveView}
           >
@@ -231,30 +306,37 @@ export function MapScreen({ route, navigation }: Props) {
                 resizeMode="contain"
                 accessibilityLabel="Planta do Salão Abrasel"
               />
-              {pins.map((pin) => (
-                <PlantaPin
-                  key={`event-${pin.key}`}
-                  x={pin.x}
-                  y={pin.y}
-                  color={STATUS_COLOR[getEventStatus(pin.activeEvent)]}
-                  highlighted={selection?.kind === "event" && selection.key === pin.key}
-                  label={shortMarkerLabel(pin.locationName)}
-                  sizeMultiplier={1 / coverScale}
-                  onPress={() => setSelection({ kind: "event", key: pin.key })}
-                />
-              ))}
-              {POINTS_OF_INTEREST.map((poi) => (
-                <PlantaPin
-                  key={`poi-${poi.key}`}
-                  x={poi.x}
-                  y={poi.y}
-                  color={POI_COLOR}
-                  highlighted={selection?.kind === "poi" && selection.key === poi.key}
-                  label={poi.marker}
-                  sizeMultiplier={1 / coverScale}
-                  onPress={() => setSelection({ kind: "poi", key: poi.key })}
-                />
-              ))}
+              {/* O tamanho do pino compensa a escala atual para ele ficar
+                  constante na tela. No modo portrait a escala varia muito
+                  mais (de "planta inteira" até 4x), então usar a escala VIVA
+                  em vez da de abertura é o que impede o pino de virar um
+                  borrão gigante na visão geral. */}
+              {mostrarPinos &&
+                pins.map((pin) => (
+                  <PlantaPin
+                    key={`event-${pin.key}`}
+                    x={pin.x}
+                    y={pin.y}
+                    color={STATUS_COLOR[getEventStatus(pin.activeEvent)]}
+                    highlighted={selection?.kind === "event" && selection.key === pin.key}
+                    label={shortMarkerLabel(pin.locationName)}
+                    sizeMultiplier={1 / (liveView?.scale ?? coverScale)}
+                    onPress={() => setSelection({ kind: "event", key: pin.key })}
+                  />
+                ))}
+              {mostrarPinos &&
+                POINTS_OF_INTEREST.map((poi) => (
+                  <PlantaPin
+                    key={`poi-${poi.key}`}
+                    x={poi.x}
+                    y={poi.y}
+                    color={POI_COLOR}
+                    highlighted={selection?.kind === "poi" && selection.key === poi.key}
+                    label={poi.marker}
+                    sizeMultiplier={1 / (liveView?.scale ?? coverScale)}
+                    onPress={() => setSelection({ kind: "poi", key: poi.key })}
+                  />
+                ))}
             </View>
           </ZoomPan>
         )}
@@ -274,7 +356,25 @@ export function MapScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        <View style={styles.zoomControls}>
+        {/* TEMPORÁRIO — alterna entre o comportamento antigo e o pensado para
+            celular em pé, para a escolha ser feita olhando. Sai da tela junto
+            com o estado `modo` assim que a decisão for tomada. */}
+        <Pressable
+          style={styles.orientacaoBotao}
+          onPress={() => setModo((m) => (m === "classico" ? "portrait" : "classico"))}
+          accessibilityRole="button"
+          accessibilityLabel={
+            modo === "classico"
+              ? "Ver a versão pensada para celular em pé"
+              : "Voltar para a versão atual do mapa"
+          }
+        >
+          <Text style={styles.orientacaoTexto}>
+            {modo === "classico" ? "Ver versão portrait" : "Ver versão atual"}
+          </Text>
+        </Pressable>
+
+        <View style={[styles.zoomControls, modo === "portrait" && styles.zoomControlsPortrait]}>
           <Pressable
             style={styles.zoomButton}
             onPress={() => zoomPanRef.current?.zoomIn()}
@@ -290,6 +390,31 @@ export function MapScreen({ route, navigation }: Props) {
             <Text style={styles.zoomButtonText}>–</Text>
           </Pressable>
         </View>
+
+        {/* Atalhos de região: é o que transforma a planta em algo consultável
+            de pé no salão. Sem eles, achar a Arena Sebrae numa planta 3,6:1 é
+            arrastar às cegas até topar com ela.
+
+            Sobrepostos, e não empilhados abaixo do mapa, de propósito: como
+            faixa própria eles encurtavam a área do mapa só neste modo, e a
+            viewport medida ficava diferente entre os dois — o que deslocava a
+            escala "cover" e fazia o modo clássico abrir levemente fora do
+            lugar ao voltar. Sobrepondo, a área do mapa é a mesma sempre. */}
+        {modo === "portrait" && (
+          <View style={styles.regioes} pointerEvents="box-none">
+            {REGIOES.map((regiao) => (
+              <Pressable
+                key={regiao.key}
+                style={styles.regiaoChip}
+                onPress={() => irParaRegiao(regiao.key)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ir para ${regiao.label}`}
+              >
+                <Text style={styles.regiaoChipTexto}>{regiao.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
       {selectedPin && (
@@ -328,11 +453,67 @@ const styles = StyleSheet.create({
     left: spacing.sm,
     top: spacing.sm,
   },
+  // TEMPORÁRIO — botão de comparação de orientação.
+  orientacaoBotao: {
+    position: "absolute",
+    right: spacing.sm,
+    top: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.marinho,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  orientacaoTexto: {
+    color: colors.textOnDark,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  // Camada sobreposta ao mapa. `pointerEvents="box-none"` no container deixa
+  // o arraste passar pelos vãos entre os chips e chegar no mapa; só os chips
+  // em si capturam o toque.
+  regioes: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  regiaoChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  regiaoChipTexto: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.text,
+  },
   zoomControls: {
     position: "absolute",
     right: spacing.sm,
     bottom: spacing.sm,
     gap: spacing.xs,
+  },
+  // Sobe acima da faixa de atalhos para os dois não se cobrirem.
+  zoomControlsPortrait: {
+    bottom: spacing.sm + 48,
   },
   zoomButton: {
     width: 36,

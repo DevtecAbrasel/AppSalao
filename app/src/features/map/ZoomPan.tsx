@@ -4,6 +4,7 @@ import { PanGestureHandler, PinchGestureHandler, State } from "react-native-gest
 import {
   centerForFixedPoint,
   clampCenter,
+  clampPointToContent,
   clampScale,
   mapPointAtScreen,
   Point,
@@ -87,11 +88,15 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   const viewport = { width: viewportWidth, height: viewportHeight };
   const content = { width: contentWidth, height: contentHeight };
 
-  // Aplica escala/centro já validados: atualiza os refs (fonte da verdade),
-  // projeta pra translateX/Y (via `translationForCenter`, que já leva em conta
-  // que o pivô do transform é o centro da View) e avisa quem está ouvindo
-  // (minimapa).
-  const commit = (scale: number, center: Point, animated: boolean) => {
+  // Recebe o centro pretendido (ainda SEM limites) e é aqui que os limites
+  // são aplicados — assim todo caminho que mexe no mapa (gesto, botão,
+  // atalho) passa pela mesma porta e não há como esquecer de travar num
+  // deles. Depois projeta pra translateX/Y (via `translationForCenter`, que
+  // já leva em conta que o pivô do transform é o centro da View) e avisa quem
+  // está ouvindo (minimapa).
+  const commit = (scale: number, desired: Point, animated: boolean) => {
+    const center = clampCenter(desired, scale, viewport, content);
+
     scaleRef.current = scale;
     centerRef.current = center;
 
@@ -114,8 +119,7 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
 
   const applyTransform = (x: number, y: number, targetScale: number, animated: boolean) => {
     const scale = clampScale(targetScale, minScale, maxScale);
-    const center = clampCenter({ x, y }, scale, viewport, content);
-    commit(scale, center, animated);
+    commit(scale, { x, y }, animated);
   };
 
   // Se a viewport muda de tamanho (rotação, resize da janela) ou os limites
@@ -153,6 +157,7 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
   const onPanStateChange = (event: { nativeEvent: { state: number; oldState: number } }) => {
     const { state, oldState } = event.nativeEvent;
     if (state === State.ACTIVE && oldState !== State.ACTIVE) {
+      // Parte do que está PINTADO: é sobre essa imagem que o dedo desliza.
       panStartCenterRef.current = { ...centerRef.current };
     }
   };
@@ -166,8 +171,7 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
       x: panStartCenterRef.current.x - translationX / scale,
       y: panStartCenterRef.current.y - translationY / scale,
     };
-    const center = clampCenter(proposed, scale, viewport, content);
-    commit(scale, center, false);
+    commit(scale, proposed, false);
   };
 
   // --- Pinça (zoom com 2 dedos, ancorado no ponto médio dos dedos) -------
@@ -222,12 +226,14 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
     pinchLastScaleRef.current = cumulativeScale;
     if (!Number.isFinite(incremental) || incremental <= 0) return;
 
-    const mapPointUnderFinger = mapPointAtScreen(focal, viewport, scaleRef.current, centerRef.current);
+    const mapPointUnderFinger = clampPointToContent(
+      mapPointAtScreen(focal, viewport, scaleRef.current, centerRef.current),
+      content
+    );
     const newScale = clampScale(scaleRef.current * incremental, minScale, maxScale);
     const newCenterRaw = centerForFixedPoint(mapPointUnderFinger, focal, viewport, newScale);
-    const newCenter = clampCenter(newCenterRaw, newScale, viewport, content);
 
-    commit(newScale, newCenter, false);
+    commit(newScale, newCenterRaw, false);
   };
 
   // --- Wheel do mouse (desktop), ancorado no cursor ----------------------
@@ -255,11 +261,13 @@ export const ZoomPan = forwardRef<ZoomPanHandle, Props>(function ZoomPan(
       const factor = Math.exp(-event.deltaY * 0.0015);
       const newScale = clampScale(scaleRef.current * factor, minScale, maxScale);
 
-      const mapPointUnderCursor = mapPointAtScreen(cursor, viewport, scaleRef.current, centerRef.current);
+      const mapPointUnderCursor = clampPointToContent(
+        mapPointAtScreen(cursor, viewport, scaleRef.current, centerRef.current),
+        content
+      );
       const newCenterRaw = centerForFixedPoint(mapPointUnderCursor, cursor, viewport, newScale);
-      const newCenter = clampCenter(newCenterRaw, newScale, viewport, content);
 
-      commit(newScale, newCenter, false);
+      commit(newScale, newCenterRaw, false);
     };
 
     node.addEventListener("wheel", handleWheel, { passive: false });

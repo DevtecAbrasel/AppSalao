@@ -65,6 +65,21 @@ export function clampCenter(
   return { x, y };
 }
 
+// Ponto de ancoragem do zoom, preso ao conteúdo.
+//
+// Quando a planta é menor que a viewport (zoom afastado), sobra fundo vazio em
+// volta — no celular em pé essa faixa chega a 40% da tela. Dois dedos apoiados
+// aí apontam para um ponto FORA do desenho, e ancorar o zoom nele faz a planta
+// fugir em vez de aproximar: é o que dá a sensação de "a pinça não funciona".
+// Prendendo o ponto à borda mais próxima do conteúdo, pinçar sobre o vazio
+// aproxima a região vizinha, que é o que a pessoa quis dizer.
+export function clampPointToContent(point: Point, content: ContentSize): Point {
+  return {
+    x: Math.min(Math.max(point.x, 0), content.width),
+    y: Math.min(Math.max(point.y, 0), content.height),
+  };
+}
+
 // `translateX/translateY` que faz a projeção lá de cima valer de verdade.
 //
 // ATENÇÃO ao pivô: a View transformada tem exatamente o tamanho da viewport,
