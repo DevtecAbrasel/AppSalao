@@ -10,14 +10,19 @@ interface BeforeInstallPromptEvent extends Event {
 
 /**
  * Como este visitante consegue instalar:
- * - "prompt": o navegador oferece instalação de verdade (Chrome/Edge, Android
- *   e desktop). Um toque resolve.
+ * - "prompt": o navegador já se declarou pronto para instalar (Chrome/Edge).
+ *   Um toque resolve.
  * - "ios": Safari/iOS não expõe API nenhuma para isso. A única saída é
  *   ensinar o caminho do menu Compartilhar.
- * - "nenhum": ou já está instalado, ou é um navegador sem os dois caminhos
- *   (Firefox e Safari no desktop) — aí não há o que oferecer.
+ * - "menu": dá para instalar, mas pelo menu do navegador. É o caso do Chrome
+ *   no Android ANTES de ele disparar o `beforeinstallprompt` — o evento só vem
+ *   depois de a pessoa ter interagido com a página por volta de 30 segundos, e
+ *   até lá esconder o convite deixaria o cabeçalho vazio justo para quem
+ *   acabou de chegar.
+ * - "nenhum": ou já está instalado, ou é um navegador de desktop sem nenhum
+ *   dos caminhos (Firefox, Safari) — aí não há o que oferecer.
  */
-export type ModoInstalacao = "prompt" | "ios" | "nenhum";
+export type ModoInstalacao = "prompt" | "ios" | "menu" | "nenhum";
 
 function ehWeb(): boolean {
   return Platform.OS === "web" && typeof window !== "undefined";
@@ -40,6 +45,14 @@ function ehIOS(): boolean {
   // iPadOS 13+ se identifica como Mac; o que o denuncia é ter tela sensível
   // ao toque, coisa que um Mac de verdade não reporta.
   return window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1;
+}
+
+// Celular ou tablet. Serve só para decidir se vale ensinar o caminho do menu:
+// no desktop sem suporte a instalação (Firefox, Safari) não há o que ensinar.
+function ehMobile(): boolean {
+  if (!ehWeb()) return false;
+  if (/Android|iPad|iPhone|iPod|Mobile|Tablet/i.test(window.navigator.userAgent)) return true;
+  return ehIOS();
 }
 
 export function useInstalarApp() {
@@ -78,13 +91,17 @@ export function useInstalarApp() {
     };
   }, []);
 
+  // Ordem importa: o iOS vem antes do evento porque lá ele nunca chega, e o
+  // "menu" é o piso — só cai em "nenhum" quem realmente não tem como instalar.
   const modo: ModoInstalacao = instalado
     ? "nenhum"
-    : evento
-      ? "prompt"
-      : ehIOS()
-        ? "ios"
-        : "nenhum";
+    : ehIOS()
+      ? "ios"
+      : evento
+        ? "prompt"
+        : ehMobile()
+          ? "menu"
+          : "nenhum";
 
   // Devolve true se o app foi mesmo instalado, para a tela poder se fechar.
   const instalar = useCallback(async (): Promise<boolean> => {

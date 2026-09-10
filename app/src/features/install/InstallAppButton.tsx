@@ -62,7 +62,7 @@ export function InstallAppButton() {
               baixado da loja.
             </Text>
 
-            {modo === "prompt" ? (
+            {modo === "prompt" && (
               <Pressable
                 style={styles.botaoPrincipal}
                 onPress={aoInstalar}
@@ -70,7 +70,9 @@ export function InstallAppButton() {
               >
                 <Text style={styles.botaoPrincipalTexto}>Instalar agora</Text>
               </Pressable>
-            ) : (
+            )}
+
+            {modo === "ios" && (
               <View style={styles.passos}>
                 <Passo
                   numero={1}
@@ -86,6 +88,26 @@ export function InstallAppButton() {
                   numero={3}
                   icone="download"
                   texto="Confirme em Adicionar. O ícone aparece na tela inicial."
+                />
+              </View>
+            )}
+
+            {modo === "menu" && (
+              <View style={styles.passos}>
+                <Passo
+                  numero={1}
+                  icone="more-vert"
+                  texto="Toque no menu do navegador, no canto da tela."
+                />
+                <Passo
+                  numero={2}
+                  icone="download"
+                  texto="Escolha Instalar aplicativo ou Adicionar à tela inicial."
+                />
+                <Passo
+                  numero={3}
+                  icone="add-box"
+                  texto="Confirme. O ícone aparece junto dos seus outros apps."
                 />
               </View>
             )}
