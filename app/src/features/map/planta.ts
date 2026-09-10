@@ -79,21 +79,35 @@ export function enquadrarRegiao(
 /**
  * Onde cada arena fica na planta de 2026, em coordenadas normalizadas.
  *
- * Por que não vem do banco: `locationMapX/Y` dos eventos foram medidos na
- * planta ANTIGA e não valem mais neste desenho. Atualizar dado de produção
- * está fora do combinado (só código, deploy por `git pull`), então a posição
- * mora aqui junto da planta a que ela se refere. Quando o banco for
- * atualizado, basta apagar este mapa: o código volta a usar o valor do evento.
+ * Chaveado pelo NÚMERO da arena, e não pelo nome inteiro, porque o
+ * patrocinador muda e o espaço físico não. Foi o que aconteceu em 2026: a
+ * "Arena 2 - Ambev" passou a ser a Arena Sebrae, e com a chave sendo o nome
+ * completo bastava renomear no painel para o pino cair no lugar errado —
+ * silenciosamente, porque a busca só deixaria de encontrar e o código voltaria
+ * às coordenadas do banco (medidas na planta ANTIGA).
  *
- * ATENÇÃO: a planta nova não tem "Arena Ambev" — as duas arenas desenhadas são
- * ARENA KEETA e ARENA SEBRAE. O pino da "Arena 2 - Ambev" está sobre a ARENA
- * SEBRAE por ser estruturalmente a segunda arena, mas isso precisa ser
- * confirmado com a organização.
+ * Por que a posição não vem do banco: `locationMapX/Y` dos eventos foram
+ * medidos na planta anterior e não valem mais neste desenho. Quando forem
+ * atualizados, basta apagar este mapa e a função abaixo passa a usar o valor
+ * do evento sozinha.
  */
-export const ARENAS_NA_PLANTA: Record<string, Point> = {
-  "Arena 1 - Keeta": { x: 0.626, y: 0.51 },
-  "Arena 2 - Ambev": { x: 0.218, y: 0.477 },
-};
+// Cada arena é reconhecida por número OU pelo nome desenhado, porque as duas
+// formas circulam: o banco usa "Arena 2 - Ambev" e o material impresso do
+// evento usa "ARENA SEBRAE", sem número. Aceitar as duas (e o patrocinador
+// antigo) faz a renomeação no painel ser indiferente para o mapa, em qualquer
+// ordem — que é a única maneira de isso não quebrar no meio do caminho.
+//
+// Todos os padrões exigem que o nome COMECE com "Arena", para não capturar o
+// dígito de um estande qualquer ("Estande 3").
+const ARENAS: Array<{ padrao: RegExp; ponto: Point }> = [
+  { padrao: /^\s*arena\b.*(\b1\b|keeta)/i, ponto: { x: 0.626, y: 0.51 } },
+  { padrao: /^\s*arena\b.*(\b2\b|sebrae|ambev)/i, ponto: { x: 0.218, y: 0.477 } },
+];
+
+/** A posição da arena desenhada na planta, se o local for uma. */
+export function arenaNaPlanta(locationName: string): Point | null {
+  return ARENAS.find((a) => a.padrao.test(locationName))?.ponto ?? null;
+}
 
 /** Posição do evento na planta, em coordenadas normalizadas. */
 export function coordenadaDoEvento(event: {
@@ -101,7 +115,7 @@ export function coordenadaDoEvento(event: {
   locationMapX?: number | null;
   locationMapY?: number | null;
 }): Point | null {
-  const naPlanta = ARENAS_NA_PLANTA[event.locationName];
+  const naPlanta = arenaNaPlanta(event.locationName);
   if (naPlanta) return naPlanta;
 
   if (event.locationMapX == null || event.locationMapY == null) return null;
