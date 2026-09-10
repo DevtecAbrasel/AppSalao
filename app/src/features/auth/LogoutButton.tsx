@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import { colors, radius, spacing } from "../../constants/theme";
 import { confirmar } from "../../lib/dialog";
+import { HeaderAction } from "../../navigation/HeaderAction";
 import { useAuthStore } from "./store";
 
 interface Props {
@@ -44,21 +45,17 @@ export function LogoutButton({ variant = "header" }: Props) {
   }
 
   return (
-    <Pressable
+    <HeaderAction
+      icon="logout"
+      label="Sair"
+      color={colors.primary}
       onPress={perguntar}
-      hitSlop={8}
-      style={styles.header}
-      accessibilityRole="button"
       accessibilityLabel="Sair da conta"
-    >
-      <Text style={styles.headerTexto}>Sair</Text>
-    </Pressable>
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: spacing.xs },
-  headerTexto: { color: colors.primary, fontWeight: "600" },
   bloco: {
     marginTop: spacing.sm,
     paddingVertical: spacing.sm + 2,

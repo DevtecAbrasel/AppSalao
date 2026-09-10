@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "../../constants/theme";
 import { Icon, IconName } from "../../components/Icon";
+import { HeaderAction } from "../../navigation/HeaderAction";
 import { useInstalarApp } from "./useInstalarApp";
 
 // Convite para deixar o app na tela inicial. Só aparece quando há de fato um
@@ -19,15 +20,12 @@ export function InstallAppButton() {
 
   return (
     <>
-      <Pressable
+      <HeaderAction
+        icon="download"
+        label="Instalar"
         onPress={() => setAberto(true)}
-        hitSlop={8}
-        style={styles.botaoHeader}
-        accessibilityRole="button"
         accessibilityLabel="Instalar o app na tela inicial"
-      >
-        <Icon name="download" size={21} color={colors.textMuted} />
-      </Pressable>
+      />
 
       <Modal
         visible={aberto}
@@ -131,11 +129,6 @@ function Passo({ numero, icone, texto }: { numero: number; icone: IconName; text
 }
 
 const styles = StyleSheet.create({
-  botaoHeader: {
-    paddingHorizontal: spacing.xs,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   fundo: {
     flex: 1,
     backgroundColor: "rgba(21, 36, 60, 0.55)",
