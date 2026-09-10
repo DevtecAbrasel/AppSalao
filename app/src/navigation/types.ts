@@ -5,19 +5,23 @@ export type AuthStackParamList = {
   Signup: undefined;
 };
 
-// `Notifications` é registrada nos três stacks de propósito: assim o sino
-// abre a lista dentro da aba onde o usuário já está, sem pular de aba, e a
-// palestra aberta a partir de uma notificação empilha no mesmo lugar.
+// `Notifications` e `Consultorias` são registradas em TODOS os stacks que
+// exibem o cabeçalho, de propósito: os dois botões moram lá, e sem a rota
+// local o React Navigation resolveria subindo até outro navegador — abriria
+// a tela certa, mas trocando a aba por baixo de quem tocou. Assim a tela
+// empilha onde a pessoa já estava, e o "voltar" devolve ao lugar de origem.
 export type AgendaStackParamList = {
   AgendaList: undefined;
   EventDetail: { eventId: string };
   Notifications: undefined;
+  Consultorias: undefined;
 };
 
 export type FavoritesStackParamList = {
   FavoritesList: undefined;
   EventDetail: { eventId: string };
   Notifications: undefined;
+  Consultorias: undefined;
 };
 
 export type MapStackParamList = {
@@ -26,19 +30,15 @@ export type MapStackParamList = {
     | undefined;
   EventDetail: { eventId: string };
   Notifications: undefined;
+  Consultorias: undefined;
 };
 
 // Lista de expositores: aba própria porque é um destino em si ("onde fica a
 // Ambev?"), e não um detalhe de outra tela. Daqui se salta para o mapa.
 export type ExhibitorsStackParamList = {
   ExhibitorsList: undefined;
-};
-
-// Plantão de consultorias no estande da Abrasel. Uma tela só, mas com aba
-// própria: é uma oferta que vale durante os dois dias inteiros e alguém pode
-// querer voltar nela a qualquer momento.
-export type ConsultingStackParamList = {
-  ConsultingHome: undefined;
+  Notifications: undefined;
+  Consultorias: undefined;
 };
 
 // Painel administrativo: separado da experiência normal do app, numa aba
@@ -55,7 +55,6 @@ export type RootTabParamList = {
   Favoritos: NavigatorScreenParams<FavoritesStackParamList>;
   Mapa: NavigatorScreenParams<MapStackParamList>;
   Expositores: NavigatorScreenParams<ExhibitorsStackParamList>;
-  Consultorias: NavigatorScreenParams<ConsultingStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 

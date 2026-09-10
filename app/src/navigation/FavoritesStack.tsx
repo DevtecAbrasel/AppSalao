@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { FavoritesScreen } from "../features/favorites/FavoritesScreen";
 import { EventDetailScreen } from "../features/events/EventDetailScreen";
 import { NotificationsScreen } from "../features/notifications/NotificationsScreen";
+import { ConsultoriasScreen } from "../features/consulting/ConsultoriasScreen";
 import { HeaderActions } from "./HeaderActions";
 import { colors } from "../constants/theme";
 import { FavoritesStackParamList } from "./types";
@@ -19,12 +20,20 @@ export function FavoritesStackNavigator() {
       <Stack.Screen
         name="FavoritesList"
         component={FavoritesScreen}
-        options={{ title: "Meus Favoritos", headerRight: () => <HeaderActions /> }}
+        options={({ navigation }) => ({
+          title: "Meus Favoritos",
+          headerRight: () => <HeaderActions navigation={navigation} />,
+        })}
       />
       <Stack.Screen
         name="EventDetail"
         component={EventDetailScreen}
         options={{ title: "Detalhes" }}
+      />
+      <Stack.Screen
+        name="Consultorias"
+        component={ConsultoriasScreen}
+        options={{ title: "Consultorias" }}
       />
       <Stack.Screen
         name="Notifications"
