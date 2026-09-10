@@ -121,9 +121,9 @@ export function MapScreen({ route, navigation }: Props) {
   const [liveView, setLiveView] = useState<{ scale: number; center: Point } | null>(null);
   const hasCenteredRef = useRef(false);
 
-  // TEMPORÁRIO — comparação entre o comportamento antigo e o pensado para
-  // celular em pé. Existe só para a escolha ser feita olhando; depois vira uma
-  // constante e o botão sai da tela.
+  // Começa em "tela cheia" porque é o enquadramento em que a planta preenche
+  // a tela e os nomes já saem legíveis; quem quiser se situar no salão troca
+  // para a visão com atalhos pelo botão.
   const [modo, setModo] = useState<ModoMapa>("classico");
 
   const zoomPanRef = useRef<ZoomPanHandle>(null);
@@ -356,21 +356,22 @@ export function MapScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* TEMPORÁRIO — alterna entre o comportamento antigo e o pensado para
-            celular em pé, para a escolha ser feita olhando. Sai da tela junto
-            com o estado `modo` assim que a decisão for tomada. */}
+        {/* Alterna entre os dois enquadramentos. O rótulo nomeia o que a
+            pessoa VAI VER ao tocar, e não o modo em que ela está — é a
+            pergunta que alguém de pé no salão realmente faz ("cadê a planta
+            inteira?"), em vez de um nome interno de configuração. */}
         <Pressable
-          style={styles.orientacaoBotao}
+          style={styles.visaoBotao}
           onPress={() => setModo((m) => (m === "classico" ? "portrait" : "classico"))}
           accessibilityRole="button"
           accessibilityLabel={
             modo === "classico"
-              ? "Ver a versão pensada para celular em pé"
-              : "Voltar para a versão atual do mapa"
+              ? "Ver a planta inteira, com atalhos para as regiões"
+              : "Voltar para a planta em tela cheia"
           }
         >
-          <Text style={styles.orientacaoTexto}>
-            {modo === "classico" ? "Ver versão portrait" : "Ver versão atual"}
+          <Text style={styles.visaoTexto}>
+            {modo === "classico" ? "Ver planta inteira" : "Tela cheia"}
           </Text>
         </Pressable>
 
@@ -453,8 +454,7 @@ const styles = StyleSheet.create({
     left: spacing.sm,
     top: spacing.sm,
   },
-  // TEMPORÁRIO — botão de comparação de orientação.
-  orientacaoBotao: {
+  visaoBotao: {
     position: "absolute",
     right: spacing.sm,
     top: spacing.sm,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  orientacaoTexto: {
+  visaoTexto: {
     color: colors.textOnDark,
     fontSize: 13,
     fontWeight: "700",
