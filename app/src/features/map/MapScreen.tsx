@@ -148,10 +148,12 @@ export function MapScreen({ route, navigation }: Props) {
   const minScale = modo === "portrait" ? fitScale : coverScale;
   const maxScale = coverScale * MAX_ZOOM_MULTIPLIER;
 
-  // Zoom de abertura no modo portrait: nem o "tudo espremido" (ilegível), nem
-  // o "cover" (que já entra colado no chão). Fica no meio, num ponto em que
-  // dá para ler os nomes maiores e ainda entender onde se está.
-  const escalaDeAbertura = modo === "portrait" ? Math.min(coverScale, fitScale * 3.2) : coverScale;
+  // O portrait abre na escala "cover", igual ao clássico — e isso é
+  // deliberado. Abrir mais afastado mostrava mais planta, mas deixava 41% da
+  // tela como fundo vazio, e dois dedos apoiados nessa faixa pinçam sobre
+  // nada. A visão geral continua disponível (atalho "Tudo" e zoom para fora);
+  // ela deixou de ser o estado inicial.
+  const escalaDeAbertura = coverScale;
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -372,7 +374,7 @@ export function MapScreen({ route, navigation }: Props) {
           </Text>
         </Pressable>
 
-        <View style={styles.zoomControls}>
+        <View style={[styles.zoomControls, modo === "portrait" && styles.zoomControlsPortrait]}>
           <Pressable
             style={styles.zoomButton}
             onPress={() => zoomPanRef.current?.zoomIn()}
@@ -388,26 +390,32 @@ export function MapScreen({ route, navigation }: Props) {
             <Text style={styles.zoomButtonText}>–</Text>
           </Pressable>
         </View>
-      </View>
 
-      {/* Atalhos de região: é o que transforma a planta em algo consultável
-          de pé no salão. Sem eles, achar a Arena Sebrae numa planta 3,6:1 é
-          arrastar às cegas até topar com ela. */}
-      {modo === "portrait" && (
-        <View style={styles.regioes}>
-          {REGIOES.map((regiao) => (
-            <Pressable
-              key={regiao.key}
-              style={styles.regiaoChip}
-              onPress={() => irParaRegiao(regiao.key)}
-              accessibilityRole="button"
-              accessibilityLabel={`Ir para ${regiao.label}`}
-            >
-              <Text style={styles.regiaoChipTexto}>{regiao.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+        {/* Atalhos de região: é o que transforma a planta em algo consultável
+            de pé no salão. Sem eles, achar a Arena Sebrae numa planta 3,6:1 é
+            arrastar às cegas até topar com ela.
+
+            Sobrepostos, e não empilhados abaixo do mapa, de propósito: como
+            faixa própria eles encurtavam a área do mapa só neste modo, e a
+            viewport medida ficava diferente entre os dois — o que deslocava a
+            escala "cover" e fazia o modo clássico abrir levemente fora do
+            lugar ao voltar. Sobrepondo, a área do mapa é a mesma sempre. */}
+        {modo === "portrait" && (
+          <View style={styles.regioes} pointerEvents="box-none">
+            {REGIOES.map((regiao) => (
+              <Pressable
+                key={regiao.key}
+                style={styles.regiaoChip}
+                onPress={() => irParaRegiao(regiao.key)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ir para ${regiao.label}`}
+              >
+                <Text style={styles.regiaoChipTexto}>{regiao.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
 
       {selectedPin && (
         <EventPreviewCard
@@ -465,17 +473,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  // Faixa de atalhos abaixo do mapa: fica fora da área de arraste, então não
-  // disputa gesto com o pan.
+  // Camada sobreposta ao mapa. `pointerEvents="box-none"` no container deixa
+  // o arraste passar pelos vãos entre os chips e chegar no mapa; só os chips
+  // em si capturam o toque.
   regioes: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.xs,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   regiaoChip: {
     paddingHorizontal: spacing.md,
@@ -483,7 +493,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceCream,
+    backgroundColor: colors.surface,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
   },
   regiaoChipTexto: {
     fontSize: 13,
@@ -495,6 +510,10 @@ const styles = StyleSheet.create({
     right: spacing.sm,
     bottom: spacing.sm,
     gap: spacing.xs,
+  },
+  // Sobe acima da faixa de atalhos para os dois não se cobrirem.
+  zoomControlsPortrait: {
+    bottom: spacing.sm + 48,
   },
   zoomButton: {
     width: 36,
