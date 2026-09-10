@@ -21,9 +21,15 @@ export type FavoritesStackParamList = {
 };
 
 export type MapStackParamList = {
-  MapView: { focusEventId?: string } | undefined;
+  MapView: { focusEventId?: string; focusExpositorKey?: string } | undefined;
   EventDetail: { eventId: string };
   Notifications: undefined;
+};
+
+// Lista de expositores: aba própria porque é um destino em si ("onde fica a
+// Ambev?"), e não um detalhe de outra tela. Daqui se salta para o mapa.
+export type ExhibitorsStackParamList = {
+  ExhibitorsList: undefined;
 };
 
 // Painel administrativo: separado da experiência normal do app, numa aba
@@ -39,6 +45,7 @@ export type RootTabParamList = {
   Agenda: NavigatorScreenParams<AgendaStackParamList>;
   Favoritos: NavigatorScreenParams<FavoritesStackParamList>;
   Mapa: NavigatorScreenParams<MapStackParamList>;
+  Expositores: NavigatorScreenParams<ExhibitorsStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 
