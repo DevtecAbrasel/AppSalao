@@ -13,6 +13,7 @@ import { EventPreviewCard } from "./EventPreviewCard";
 import { PlacePreviewCard } from "./PlacePreviewCard";
 import { Minimap } from "./Minimap";
 import { POINTS_OF_INTEREST } from "./pointsOfInterest";
+import { acharExpositor, temLocalizacao } from "../exhibitors/expositores";
 import {
   computeFitScale,
   coordenadaDoEvento,
@@ -56,7 +57,23 @@ interface RoomPin {
   activeEvent: EventItem;
 }
 
-type Selection = { kind: "event"; key: string } | { kind: "poi"; key: string } | null;
+type Selection =
+  | { kind: "event"; key: string }
+  | { kind: "poi"; key: string }
+  | { kind: "expositor"; key: string }
+  | null;
+
+// Quanto aproximar ao chegar pela lista de expositores, em múltiplos da
+// escala "cover". Um stand ocupa poucos centímetros da planta: no máximo do
+// zoom só se vê o logo dele, sem rua nem vizinho, e quem chegou ali
+// justamente quer saber ONDE aquilo fica. Este valor deixa o stand grande e
+// ainda mostra o que está em volta.
+const ZOOM_DO_EXPOSITOR = 1.8;
+
+// Dois pinos no mesmo ponto viram um borrão. Quando o expositor destacado
+// coincide com um ponto de interesse já existente (Ambev, Stone, iFood...),
+// o pino permanente cede a vez ao destaque.
+const DISTANCIA_MESMO_PONTO = 0.012;
 
 // Marcador curto exibido dentro do pin: usa o número da arena/sala quando
 // existe (ex: "Arena 1 - Keeta" -> "1"), senão a primeira letra do nome.
@@ -182,6 +199,32 @@ export function MapScreen({ route, navigation }: Props) {
   }, [favorites]);
 
   const focusEventId = route.params?.focusEventId;
+  const focusExpositorKey = route.params?.focusExpositorKey;
+
+  // Chegou pela lista de expositores: enquadra o stand e o deixa selecionado,
+  // com o cartão mostrando o nome. Depois disso o mapa é o mapa de sempre —
+  // este efeito só decide o PRIMEIRO enquadramento e não trava mais nada, por
+  // isso zoom, pinça e arraste seguem livres.
+  useEffect(() => {
+    if (!focusExpositorKey || !viewport) return;
+    const expositor = acharExpositor(focusExpositorKey);
+    if (!expositor || !temLocalizacao(expositor)) return;
+
+    hasCenteredRef.current = true;
+    setSelection({ kind: "expositor", key: expositor.key });
+    zoomPanRef.current?.centerOn(
+      expositor.x * PLANTA_NATIVE_WIDTH,
+      expositor.y * PLANTA_NATIVE_HEIGHT,
+      Math.min(maxScale, coverScale * ZOOM_DO_EXPOSITOR)
+    );
+  }, [
+    focusExpositorKey,
+    viewport,
+    coverScale,
+    maxScale,
+    PLANTA_NATIVE_WIDTH,
+    PLANTA_NATIVE_HEIGHT,
+  ]);
 
   // Trocar de modo muda os limites de zoom: o enquadramento anterior pode nem
   // ser mais alcançável. Liberar o "já centralizou" faz reenquadrar do zero.
@@ -195,7 +238,7 @@ export function MapScreen({ route, navigation }: Props) {
   // pela ENTRADA — que é por onde a pessoa chega e o ponto de referência que
   // ela tem no corpo quando pega o celular no salão.
   useEffect(() => {
-    if (!viewport || hasCenteredRef.current || focusEventId) return;
+    if (!viewport || hasCenteredRef.current || focusEventId || focusExpositorKey) return;
     if (favoritesStatus === "loading") return; // espera decidir com a lista certa
 
     hasCenteredRef.current = true;
@@ -267,6 +310,23 @@ export function MapScreen({ route, navigation }: Props) {
     selection?.kind === "event" ? pins.find((p) => p.key === selection.key) : undefined;
   const selectedPoi =
     selection?.kind === "poi" ? POINTS_OF_INTEREST.find((p) => p.key === selection.key) : undefined;
+  const selectedExpositor =
+    selection?.kind === "expositor" ? acharExpositor(selection.key) : undefined;
+
+  // Só o expositor que chegou pela lista ganha pino no mapa. Marcar os 49 de
+  // uma vez cobriria a planta de bolinhas e esconderia o desenho que eles
+  // deveriam ajudar a ler — o pino aqui é um destaque momentâneo, não uma
+  // camada permanente.
+  const expositorDestacado =
+    selectedExpositor && temLocalizacao(selectedExpositor) ? selectedExpositor : undefined;
+
+  const poisVisiveis = expositorDestacado
+    ? POINTS_OF_INTEREST.filter(
+        (poi) =>
+          Math.abs(poi.x - (expositorDestacado.x as number)) > DISTANCIA_MESMO_PONTO ||
+          Math.abs(poi.y - (expositorDestacado.y as number)) > DISTANCIA_MESMO_PONTO
+      )
+    : POINTS_OF_INTEREST;
 
   // Pinos somem na visão geral: a essa distância eles viram um amontoado que
   // esconde o próprio desenho, e nenhum deles é legível de qualquer forma.
@@ -325,7 +385,7 @@ export function MapScreen({ route, navigation }: Props) {
                   />
                 ))}
               {mostrarPinos &&
-                POINTS_OF_INTEREST.map((poi) => (
+                poisVisiveis.map((poi) => (
                   <PlantaPin
                     key={`poi-${poi.key}`}
                     x={poi.x}
@@ -337,6 +397,20 @@ export function MapScreen({ route, navigation }: Props) {
                     onPress={() => setSelection({ kind: "poi", key: poi.key })}
                   />
                 ))}
+              {expositorDestacado && (
+                <PlantaPin
+                  key={`expositor-${expositorDestacado.key}`}
+                  x={expositorDestacado.x as number}
+                  y={expositorDestacado.y as number}
+                  color={colors.primary}
+                  highlighted
+                  label={expositorDestacado.nome.slice(0, 2).toUpperCase()}
+                  sizeMultiplier={1 / (liveView?.scale ?? coverScale)}
+                  onPress={() =>
+                    setSelection({ kind: "expositor", key: expositorDestacado.key })
+                  }
+                />
+              )}
             </View>
           </ZoomPan>
         )}
@@ -425,6 +499,13 @@ export function MapScreen({ route, navigation }: Props) {
           onPress={() =>
             navigation.navigate("EventDetail", { eventId: selectedPin.activeEvent.id })
           }
+        />
+      )}
+      {selectedExpositor && (
+        <PlacePreviewCard
+          label={selectedExpositor.nome}
+          eyebrow={temLocalizacao(selectedExpositor) ? "Você está vendo" : "Expositor"}
+          onClose={() => setSelection(null)}
         />
       )}
       {selectedPoi && (
