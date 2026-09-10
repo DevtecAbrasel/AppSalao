@@ -15,14 +15,16 @@ export const PLANTA = {
 };
 
 /**
- * Como o mapa se comporta.
+ * Os dois enquadramentos que o mapa oferece, alternados pelo botão da tela.
+ * Existem os dois porque servem a perguntas diferentes.
  *
- * - "classico": o que existia antes. A planta sempre COBRE a viewport, então
- *   nunca aparece fundo vazio — mas, num celular em pé, isso trava o zoom
- *   mínimo num recorte de ~18% da planta e o usuário nunca vê o conjunto.
- * - "portrait": pensado para telefone em pé. O zoom mínimo passa a ser "a
- *   planta inteira cabendo na tela", abre num enquadramento onde dá para ler,
- *   e ganha atalhos para as regiões.
+ * - "classico" (rótulo "Tela cheia"): a planta sempre COBRE a viewport, então
+ *   nunca sobra fundo vazio e os nomes saem no maior tamanho possível. É a
+ *   visão de quem já sabe onde está e quer ler. O preço é não conseguir
+ *   afastar: num celular em pé o zoom mínimo mostra ~18% da planta.
+ * - "portrait" (rótulo "Ver planta inteira"): o zoom mínimo passa a ser "a
+ *   planta inteira cabendo na tela" e aparecem os atalhos de região. É a
+ *   visão de quem está tentando se situar no salão.
  */
 export type ModoMapa = "classico" | "portrait";
 
