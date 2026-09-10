@@ -91,18 +91,22 @@ export function enquadrarRegiao(
  * atualizados, basta apagar este mapa e a função abaixo passa a usar o valor
  * do evento sozinha.
  */
-const ARENAS_POR_NUMERO: Record<string, Point> = {
-  "1": { x: 0.626, y: 0.51 }, // desenhada como ARENA KEETA
-  "2": { x: 0.218, y: 0.477 }, // desenhada como ARENA SEBRAE
-};
+// Cada arena é reconhecida por número OU pelo nome desenhado, porque as duas
+// formas circulam: o banco usa "Arena 2 - Ambev" e o material impresso do
+// evento usa "ARENA SEBRAE", sem número. Aceitar as duas (e o patrocinador
+// antigo) faz a renomeação no painel ser indiferente para o mapa, em qualquer
+// ordem — que é a única maneira de isso não quebrar no meio do caminho.
+//
+// Todos os padrões exigem que o nome COMECE com "Arena", para não capturar o
+// dígito de um estande qualquer ("Estande 3").
+const ARENAS: Array<{ padrao: RegExp; ponto: Point }> = [
+  { padrao: /^\s*arena\b.*(\b1\b|keeta)/i, ponto: { x: 0.626, y: 0.51 } },
+  { padrao: /^\s*arena\b.*(\b2\b|sebrae|ambev)/i, ponto: { x: 0.218, y: 0.477 } },
+];
 
-/**
- * O número da arena, quando o local é uma. Exige que o nome COMECE com
- * "Arena" para não capturar o dígito de um estande qualquer ("Estande 3").
- */
-export function numeroDaArena(locationName: string): string | null {
-  const m = /^\s*arena\s*(\d+)/i.exec(locationName);
-  return m ? m[1] : null;
+/** A posição da arena desenhada na planta, se o local for uma. */
+export function arenaNaPlanta(locationName: string): Point | null {
+  return ARENAS.find((a) => a.padrao.test(locationName))?.ponto ?? null;
 }
 
 /** Posição do evento na planta, em coordenadas normalizadas. */
@@ -111,8 +115,7 @@ export function coordenadaDoEvento(event: {
   locationMapX?: number | null;
   locationMapY?: number | null;
 }): Point | null {
-  const numero = numeroDaArena(event.locationName);
-  const naPlanta = numero ? ARENAS_POR_NUMERO[numero] : undefined;
+  const naPlanta = arenaNaPlanta(event.locationName);
   if (naPlanta) return naPlanta;
 
   if (event.locationMapX == null || event.locationMapY == null) return null;
