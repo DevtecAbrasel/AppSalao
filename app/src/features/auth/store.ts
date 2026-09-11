@@ -2,13 +2,7 @@ import { create } from "zustand";
 import { deleteSecureItem, getSecureItem, setSecureItem } from "../../lib/secureStorage";
 import { setAuthToken, setUnauthorizedHandler } from "../../lib/authToken";
 import { useFavoritesStore } from "../favorites/store";
-import { limparTokenDaUrl, tokenDeRecuperacaoNaAbertura } from "./linkDeRecuperacao";
-import {
-  AuthUser,
-  login as apiLogin,
-  register as apiRegister,
-  resetPassword as apiResetPassword,
-} from "./api";
+import { AuthUser, login as apiLogin, register as apiRegister } from "./api";
 
 const TOKEN_KEY = "salao-abrasel-auth-token";
 const USER_KEY = "salao-abrasel-auth-user";
@@ -19,21 +13,9 @@ interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
   error: string | null;
-  /**
-   * Token do link de recuperação, quando o app foi aberto por um.
-   *
-   * Fica no estado, e não só na URL, porque manda no que aparece na tela: o
-   * App mostra a pilha de entrada enquanto ele existir, inclusive para quem
-   * já está logado — quem clicou no link quer trocar a senha, e cair no app
-   * como se nada tivesse acontecido seria ignorar o pedido.
-   */
-  recoveryToken: string | null;
   hydrate: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  resetPassword: (token: string, password: string) => Promise<void>;
-  /** Desiste da recuperação e volta ao fluxo normal. */
-  descartarRecuperacao: () => void;
   logout: () => Promise<void>;
 }
 
@@ -53,7 +35,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   status: "hydrating",
   user: null,
   error: null,
-  recoveryToken: tokenDeRecuperacaoNaAbertura(),
 
   // Só lê a sessão salva localmente, sem round-trip de rede — no local do
   // evento o Wi-Fi pode estar instável, então confiamos no token guardado e
@@ -102,27 +83,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // A troca pelo link do e-mail já entra na conta: quem provou ter acesso à
-  // caixa de entrada e acabou de escolher a senha não precisa digitá-la outra
-  // vez na tela seguinte.
-  resetPassword: async (token: string, password: string) => {
-    set({ error: null });
-    try {
-      const { token: sessao, user } = await apiResetPassword(token, password);
-      await persistSession(sessao, user);
-      limparTokenDaUrl();
-      set({ status: "authenticated", user, recoveryToken: null });
-      useFavoritesStore.getState().load();
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Falha ao redefinir a senha" });
-      throw err;
-    }
-  },
-
-  descartarRecuperacao: () => {
-    limparTokenDaUrl();
-    set({ recoveryToken: null, error: null });
-  },
+  // A redefinição de senha não passa por aqui de propósito: ela não abre
+  // sessão nem mexe no estado de autenticação — termina na tela de login,
+  // com a pessoa entrando com a senha nova. A chamada mora na própria tela.
 
   logout: async () => {
     await clearSession();

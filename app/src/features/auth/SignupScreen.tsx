@@ -9,9 +9,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
+import { colors, radius, spacing, typography } from "../../constants/theme";
 import { Icon } from "../../components/Icon";
 import { LogoSalao } from "../../components/LogoSalao";
 import { AuthStackParamList } from "../../navigation/types";
@@ -53,14 +52,15 @@ export function SignupScreen({ navigation }: Props) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <LinearGradient colors={gradients.cinematic} style={styles.hero}>
-        <LogoSalao width={180} />
-        <Text style={styles.eyebrow}>Edição 2026</Text>
+      {/* Mesmo bloco de marca do login, para as duas telas de entrada serem
+          reconhecidamente a mesma casa. */}
+      <View style={styles.hero}>
+        <LogoSalao width={180} centralizada />
         <Text style={styles.title}>Criar Conta</Text>
         <Text style={styles.subtitle}>
           Salve seus favoritos e receba notificações das palestras que escolher.
         </Text>
-      </LinearGradient>
+      </View>
 
       <View style={styles.corpo}>
         <View style={styles.form}>
@@ -133,26 +133,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   hero: {
+    backgroundColor: colors.marinho,
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl * 1.5,
     paddingBottom: spacing.xl,
   },
-  eyebrow: {
-    ...typography.label,
-    color: colors.rosa,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
   title: {
     ...typography.display,
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.textOnDark,
+    marginTop: spacing.lg,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
+    lineHeight: 20,
     color: colors.azulClaro,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
+    textAlign: "center",
   },
   // Mesmas medidas do login (ver LoginScreen): as duas telas são a mesma
   // porta de entrada e trocar de uma para a outra não pode mexer no layout.

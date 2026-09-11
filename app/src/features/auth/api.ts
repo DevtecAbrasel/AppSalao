@@ -27,17 +27,12 @@ export function me(): Promise<AuthUser> {
 }
 
 /**
- * Pede o e-mail com o link de recuperação.
+ * Troca a senha da conta daquele e-mail.
  *
- * A resposta é a mesma exista ou não a conta — é assim de propósito no
- * servidor, para que ninguém use esta rota como lista de quem tem conta. A
- * tela mostra a mensagem que vier.
+ * Não devolve sessão: o fluxo termina na tela de login, com a pessoa entrando
+ * com a senha nova. Quem valida o e-mail e grava o hash é o servidor — o app
+ * não tem (nem deve ter) como mexer em senha.
  */
-export function forgotPassword(email: string): Promise<{ message: string }> {
-  return api.post<{ message: string }>("/auth/forgot-password", { email });
-}
-
-/** Troca a senha com o token do link e já devolve a sessão. */
-export function resetPassword(token: string, password: string): Promise<AuthResponse> {
-  return api.post<AuthResponse>("/auth/reset-password", { token, password });
+export function redefinirSenha(email: string, password: string): Promise<{ message: string }> {
+  return api.post<{ message: string }>("/auth/reset-password", { email, password });
 }
