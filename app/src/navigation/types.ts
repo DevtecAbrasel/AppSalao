@@ -3,6 +3,9 @@ import { NavigatorScreenParams } from "@react-navigation/native";
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  ForgotPassword: undefined;
+  /** Só é aberta pelo link do e-mail, que traz o token na URL. */
+  ResetPassword: { token: string };
 };
 
 // `Notifications` é registrada em TODOS os stacks que exibem o cabeçalho, de

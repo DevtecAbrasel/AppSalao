@@ -17,6 +17,10 @@ export default function App() {
   const navigationRef = useRef<NavigationContainerRef<RootTabParamList>>(null);
   const authStatus = useAuthStore((s) => s.status);
   const hydrate = useAuthStore((s) => s.hydrate);
+  // Aberto por um link de recuperação, o app mostra a pilha de entrada mesmo
+  // para quem já tem sessão: a pessoa pediu para trocar a senha, e entrar
+  // direto no app ignoraria o pedido.
+  const recuperandoSenha = useAuthStore((s) => s.recoveryToken !== null);
 
   useEffect(() => {
     hydrate();
@@ -56,12 +60,16 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer ref={navigationRef}>
-          {authStatus === "authenticated" ? <RootTabs /> : <AuthStackNavigator />}
+          {authStatus === "authenticated" && !recuperandoSenha ? (
+            <RootTabs />
+          ) : (
+            <AuthStackNavigator />
+          )}
         </NavigationContainer>
 
         {/* Fora do NavigationContainer, mas por cima dele: o toast flutua
             sobre qualquer tela sem entrar na pilha de navegação. */}
-        {authStatus === "authenticated" && (
+        {authStatus === "authenticated" && !recuperandoSenha && (
           <NotificationToast
             onOpenEvent={(eventId) =>
               navigationRef.current?.navigate("Agenda", {
