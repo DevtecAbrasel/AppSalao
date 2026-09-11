@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
@@ -50,15 +50,31 @@ function Cartao({ atracao, onPress }: { atracao: Atracao; onPress: () => void })
       accessibilityRole="button"
       accessibilityLabel={`${atracao.nome}. Saiba mais.`}
     >
-      {/* Faixa do topo no lugar da foto: fundo da marca, barra de acento e o
-          ícone da atração. Sem texto de propósito — o nome já é o título logo
-          abaixo, e repeti-lo aqui só empurraria o conteúdo para baixo. Quando
-          a organização mandar as imagens, é esta faixa que sai; o resto do
-          cartão fica igual. */}
-      <LinearGradient colors={gradients.cinematic} style={styles.faixa}>
-        <View style={[styles.acento, { backgroundColor: atracao.acento }]} />
-        <Icon name={atracao.icone} size={44} color={atracao.acento} />
-      </LinearGradient>
+      {/* Topo do cartão: a foto da atração quando existe; senão, a faixa da
+          marca com o ícone. A caixa é a mesma nos dois casos, então a lista
+          não fica desalinhada enquanto só parte das atrações tem foto.
+          `cover` é o que garante que a foto preencha sem esticar: o que não
+          couber é aparado, e nada é distorcido. */}
+      {/* A caixa é quem manda na altura, e a foto preenche por dentro: dar a
+          proporção à própria <Image> não funciona — o react-native-web deixa
+          a altura natural do arquivo, e uma foto de 764px de altura viraria
+          um bloco gigante no meio da lista. */}
+      <View style={styles.topo}>
+        {atracao.imagem ? (
+          <Image
+            source={atracao.imagem}
+            style={styles.foto}
+            resizeMode="cover"
+            accessibilityRole="image"
+            accessibilityLabel={atracao.nome}
+          />
+        ) : (
+          <LinearGradient colors={gradients.cinematic} style={styles.faixa}>
+            <View style={[styles.acento, { backgroundColor: atracao.acento }]} />
+            <Icon name={atracao.icone} size={44} color={atracao.acento} />
+          </LinearGradient>
+        )}
+      </View>
 
       <View style={styles.corpo}>
         <Text style={styles.titulo}>{atracao.nome}</Text>
@@ -127,8 +143,28 @@ const styles = StyleSheet.create({
   cartaoPressionado: {
     opacity: 0.85,
   },
+  // Altura pela proporção, e não fixa: numa tela larga o cartão cresce e uma
+  // altura travada em 92px transformaria a foto numa tarja. 2.8:1 é o formato
+  // das fotos da organização, então elas entram praticamente sem corte.
+  topo: {
+    width: "100%",
+    // 2.88:1 é o formato das fotos da organização (764×265), então elas
+    // entram praticamente sem corte. Proporção em vez de altura fixa: numa
+    // tela larga o cartão cresce, e uma altura travada viraria uma tarja.
+    aspectRatio: 2.88,
+    overflow: "hidden",
+  },
+  // 100% em vez de posicionamento absoluto: a <Image> do react-native-web
+  // adota a medida do arquivo quando não recebe uma, e aí o `cover` acontece
+  // dentro de uma caixa de 764px que a moldura apenas recorta — aparecia o
+  // canto da foto em tamanho real, não a foto inteira.
+  foto: {
+    width: "100%",
+    height: "100%",
+  },
   faixa: {
-    height: 92,
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },

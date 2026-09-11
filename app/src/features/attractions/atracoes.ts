@@ -1,3 +1,4 @@
+import { ImageSourcePropType } from "react-native";
 import { IconName } from "../../components/Icon";
 import { colors } from "../../constants/theme";
 
@@ -61,12 +62,18 @@ export interface Atracao {
   /** Ressalva do final da página. */
   nota?: string;
   icone: IconName;
-  /**
-   * Cor de acento da faixa do topo — dá identidade a cada cartão. Quando a
-   * organização mandar as fotos, elas entram no lugar da faixa e o resto do
-   * cartão fica igual.
-   */
+  /** Cor de acento — a faixa do cartão sem foto e a moldura do ícone no detalhe. */
   acento: string;
+  /**
+   * Foto do topo do cartão.
+   *
+   * Opcional: sem ela o cartão desenha a faixa da marca com o ícone da
+   * atração, então uma atração nova aparece na lista antes de a foto existir.
+   * Os arquivos ficam em `assets/atracoes/` e entram aqui por `require`, que
+   * o Metro precisa ver escrito — caminho montado em variável não é
+   * empacotado.
+   */
+  imagem?: ImageSourcePropType;
 }
 
 export const ATRACOES: Atracao[] = [
@@ -124,6 +131,7 @@ export const ATRACOES: Atracao[] = [
     nota: "As vagas são limitadas e preenchidas conforme disponibilidade.",
     icone: "chat",
     acento: colors.rosa,
+    imagem: require("../../../assets/atracoes/consultorias.jpg"),
   },
   {
     key: "restaurante-do-futuro",
@@ -150,6 +158,7 @@ export const ATRACOES: Atracao[] = [
     horario: "Das 10h às 18h",
     icone: "restaurant",
     acento: colors.laranja,
+    imagem: require("../../../assets/atracoes/restaurante-do-futuro.jpg"),
   },
 ];
 
