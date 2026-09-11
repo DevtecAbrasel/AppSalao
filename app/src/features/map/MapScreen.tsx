@@ -203,7 +203,7 @@ export function MapScreen({ route, navigation }: Props) {
   const focusPoiKey = route.params?.focusPoiKey;
 
   // Mesmo caminho do expositor, para um ponto de interesse já existente — é
-  // assim que a tela de Consultorias mostra onde fica o estande da Abrasel.
+  // assim que a página de uma atração mostra onde ela acontece.
   useEffect(() => {
     if (!focusPoiKey || !viewport) return;
     const poi = POINTS_OF_INTEREST.find((p) => p.key === focusPoiKey);

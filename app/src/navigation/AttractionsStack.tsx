@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AtracoesScreen } from "../features/attractions/AtracoesScreen";
-import { ConsultoriasScreen } from "../features/consulting/ConsultoriasScreen";
+import { AtracaoScreen } from "../features/attractions/AtracaoScreen";
+import { acharAtracao } from "../features/attractions/atracoes";
 import { NotificationsScreen } from "../features/notifications/NotificationsScreen";
 import { HeaderActions } from "./HeaderActions";
 import { colors } from "../constants/theme";
@@ -24,12 +25,15 @@ export function AttractionsStackNavigator() {
           headerRight: () => <HeaderActions navigation={navigation} />,
         })}
       />
-      {/* A consultoria é uma atração com tela própria: o cartão empilha aqui,
-          dentro da aba, e o "voltar" devolve à lista. */}
+      {/* Uma rota para TODAS as atrações: o cartão empilha aqui, dentro da
+          aba, e o "voltar" devolve à lista. O cabeçalho pega o nome do dado,
+          então uma atração nova não precisa de rota nem de tela nova. */}
       <Stack.Screen
-        name="Consultorias"
-        component={ConsultoriasScreen}
-        options={{ title: "Orientação com especialistas" }}
+        name="Atracao"
+        component={AtracaoScreen}
+        options={({ route }) => ({
+          title: acharAtracao(route.params.atracaoKey)?.nome ?? "Atração",
+        })}
       />
       <Stack.Screen
         name="Notifications"

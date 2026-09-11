@@ -37,11 +37,11 @@ export type ExhibitorsStackParamList = {
   Notifications: undefined;
 };
 
-// Atrações: a lista é a tela da aba, e a consultoria é o detalhe de um dos
-// cartões — por isso "Consultorias" mora só aqui.
+// Atrações: a lista é a tela da aba, e "Atracao" é a página de qualquer uma
+// delas — uma rota só, com a chave da atração como parâmetro.
 export type AttractionsStackParamList = {
   AtracoesList: undefined;
-  Consultorias: undefined;
+  Atracao: { atracaoKey: string };
   Notifications: undefined;
 };
 

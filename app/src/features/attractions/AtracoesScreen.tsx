@@ -1,20 +1,17 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, gradients, radius, spacing } from "../../constants/theme";
+import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
 import { Icon, IconName } from "../../components/Icon";
 import { Atracao, ATRACOES } from "./atracoes";
 
 type Navegacao = {
-  push: (tela: "Consultorias") => void;
-  navigate: (
-    tela: "Mapa",
-    params: { screen: "MapView"; params: { focusPoiKey: string } }
-  ) => void;
+  push: (tela: "Atracao", params: { atracaoKey: string }) => void;
 };
 
 // Vitrine das atrações do salão: um cartão por atração, na ordem em que a
-// organização as apresenta.
+// organização as apresenta. Cada cartão abre a página da atração, que é uma
+// tela só para todas elas (`AtracaoScreen`).
 //
 // O cartão inteiro é a área de toque, e não só o botão do canto — no celular
 // acertar um alvo do tamanho do cartão é bem mais fácil do que acertar uma
@@ -23,20 +20,10 @@ type Navegacao = {
 export function AtracoesScreen() {
   const navigation = useNavigation<Navegacao>();
 
-  const abrir = (atracao: Atracao) => {
-    // Tela própria quando existe; senão, o que temos de concreto sobre a
-    // atração é onde ela fica.
-    if (atracao.tela) {
-      navigation.push(atracao.tela);
-      return;
-    }
-    if (atracao.poiKey) {
-      navigation.navigate("Mapa", {
-        screen: "MapView",
-        params: { focusPoiKey: atracao.poiKey },
-      });
-    }
-  };
+  // `push` e não `navigate`: empilha DENTRO desta aba, então o voltar devolve
+  // à lista em vez de trocar a aba por baixo de quem tocou.
+  const abrir = (atracao: Atracao) =>
+    navigation.push("Atracao", { atracaoKey: atracao.key });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}>
@@ -56,14 +43,12 @@ export function AtracoesScreen() {
 }
 
 function Cartao({ atracao, onPress }: { atracao: Atracao; onPress: () => void }) {
-  const acao = atracao.tela ? "Saiba mais" : "Ver no mapa";
-
   return (
     <Pressable
       style={({ pressed }) => [styles.cartao, pressed && styles.cartaoPressionado]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${atracao.nome}. ${acao}.`}
+      accessibilityLabel={`${atracao.nome}. Saiba mais.`}
     >
       {/* Faixa do topo no lugar da foto: fundo da marca, barra de acento e o
           ícone da atração. Sem texto de propósito — o nome já é o título logo
@@ -77,7 +62,12 @@ function Cartao({ atracao, onPress }: { atracao: Atracao; onPress: () => void })
 
       <View style={styles.corpo}>
         <Text style={styles.titulo}>{atracao.nome}</Text>
-        <Text style={styles.descricao}>{atracao.descricao}</Text>
+        {atracao.subtitulo ? (
+          <Text style={[styles.subtitulo, { color: atracao.acento }]}>
+            {atracao.subtitulo}
+          </Text>
+        ) : null}
+        <Text style={styles.descricao}>{atracao.resumo}</Text>
 
         <View style={styles.rodape}>
           <View style={styles.dados}>
@@ -87,7 +77,7 @@ function Cartao({ atracao, onPress }: { atracao: Atracao; onPress: () => void })
           </View>
 
           <View style={styles.acaoPilula}>
-            <Text style={styles.acaoTexto}>{acao}</Text>
+            <Text style={styles.acaoTexto}>Saiba mais</Text>
             <Icon name="chevron-right" size={16} color={colors.primary} />
           </View>
         </View>
@@ -159,6 +149,12 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     fontWeight: "800",
     color: colors.text,
+  },
+  subtitulo: {
+    ...typography.display,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 1,
   },
   descricao: {
     fontSize: 14.5,
