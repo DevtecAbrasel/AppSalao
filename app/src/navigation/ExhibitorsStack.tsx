@@ -23,10 +23,10 @@ export function ExhibitorsStackNavigator() {
           headerRight: () => <HeaderActions navigation={navigation} />,
         })}
       />
-      {/* Registradas aqui pelo mesmo motivo dos outros stacks: o cabeçalho
-          desta aba mostra o sino e o botão de consultorias, e sem as rotas o
-          toque abriria a tela na aba Agenda, trocando a aba por baixo de quem
-          estava consultando os expositores. */}
+      {/* Registrada aqui pelo mesmo motivo dos outros stacks: o cabeçalho
+          desta aba mostra o sino, e sem a rota local o toque abriria a tela na
+          aba Agenda, trocando a aba por baixo de quem estava consultando os
+          expositores. */}
       <Stack.Screen
         name="Notifications"
         component={NotificationsScreen}
