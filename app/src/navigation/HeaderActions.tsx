@@ -1,6 +1,5 @@
 import { View } from "react-native";
 import { NotificationBell } from "../features/notifications/NotificationBell";
-import { ConsultoriasButton } from "../features/consulting/ConsultoriasButton";
 import { InstallAppButton } from "../features/install/InstallAppButton";
 import { LogoutButton } from "../features/auth/LogoutButton";
 import { spacing } from "../constants/theme";
@@ -19,10 +18,10 @@ export interface HeaderNavigation {
    * `push` empilha na PILHA ATUAL, por definição.
    *
    * É o que resolve o pulo de aba: `navigate` procura a rota subindo a árvore
-   * e, como as quatro abas registram "Consultorias" e "Notifications" com o
-   * mesmo nome, ele acabava abrindo na primeira que as declara (Agenda) —
-   * mesmo estando registrada na aba atual e mesmo recebendo a navegação da
-   * própria tela. Medido: sair de Expositores e cair com "Agenda, back".
+   * e, como todas as abas registram "Notifications" com o mesmo nome, ele
+   * acabava abrindo na primeira que a declara (Agenda) — mesmo estando
+   * registrada na aba atual e mesmo recebendo a navegação da própria tela.
+   * Medido: sair de Expositores e cair com "Agenda, back".
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   push?: (screen: any) => void;
@@ -52,13 +51,12 @@ interface Props {
 // só no header de Favoritos: quem estivesse na Agenda ou no Mapa simplesmente
 // não tinha como encerrar a sessão sem descobrir que ele morava em outra aba.
 //
-// As Consultorias entram aqui, e não como aba, porque são UMA tela: uma aba
-// inteira para ela empurraria a barra para cinco itens (seis no admin) e
-// espremeria os rótulos dos destinos que a pessoa usa o tempo todo.
+// A consultoria já teve um botão aqui. Saiu quando virou um dos cartões de
+// "+ Atrações": um destino com aba própria não precisa de atalho no header de
+// todas as outras.
 export function HeaderActions({ navigation }: Props) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-      <ConsultoriasButton navigation={navigation} />
       {/* Não renderiza nada depois de instalado, nem em navegador que não
           oferece instalação — por isso não some espaço em quem não pode usar. */}
       <InstallAppButton />

@@ -1,11 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Platform } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 import { colors, spacing } from "../constants/theme";
 import { Icon, IconName } from "../components/Icon";
 import { AgendaStackNavigator } from "./AgendaStack";
 import { FavoritesStackNavigator } from "./FavoritesStack";
 import { MapStackNavigator } from "./MapStack";
 import { ExhibitorsStackNavigator } from "./ExhibitorsStack";
+import { AttractionsStackNavigator } from "./AttractionsStack";
 import { AdminStackNavigator } from "./AdminStack";
 import { useAuthStore } from "../features/auth/store";
 import { RootTabParamList } from "./types";
@@ -17,7 +18,14 @@ const ICONS: Record<keyof RootTabParamList, IconName> = {
   Favoritos: "star",
   Mapa: "map",
   Expositores: "storefront",
+  Atracoes: "ticket",
   Admin: "settings",
+};
+
+// A aba se chama "Atracoes" no código (nome de rota sem acento) e "+ Atrações"
+// na tela, que é como a organização nomeia a área.
+const LABELS: Partial<Record<keyof RootTabParamList, string>> = {
+  Atracoes: "+ Atrações",
 };
 
 export function RootTabs() {
@@ -25,6 +33,8 @@ export function RootTabs() {
   // interface: quem proíbe de fato é o servidor (requireAdmin), então montar
   // a requisição na mão não adianta.
   const isAdmin = useAuthStore((s) => s.user?.role === "ADMIN");
+  const { width } = useWindowDimensions();
+  const compacto = width < 360;
 
   return (
     <Tab.Navigator
@@ -47,8 +57,13 @@ export function RootTabs() {
           paddingTop: spacing.xs,
           paddingBottom: Platform.OS === "ios" ? spacing.lg : spacing.xs + 2,
         },
+        tabBarLabel: LABELS[route.name] ?? route.name,
         tabBarLabelStyle: {
-          fontSize: 11,
+          // Medido: com cinco abas, "Expositores" a 11px não cabe na fatia de
+          // um aparelho de 320px (57px de texto para 54px de espaço) e sai
+          // cortado. Um ponto a menos resolve, e só nesses aparelhos — do
+          // iPhone SE novo (375px) para cima nada muda.
+          fontSize: compacto ? 10 : 11,
           fontWeight: "600",
           lineHeight: 15,
           // Rótulo colado no ícone: o par lido como um bloco só, em vez de
@@ -68,6 +83,7 @@ export function RootTabs() {
       <Tab.Screen name="Favoritos" component={FavoritesStackNavigator} />
       <Tab.Screen name="Mapa" component={MapStackNavigator} />
       <Tab.Screen name="Expositores" component={ExhibitorsStackNavigator} />
+      <Tab.Screen name="Atracoes" component={AttractionsStackNavigator} />
       {isAdmin && <Tab.Screen name="Admin" component={AdminStackNavigator} />}
     </Tab.Navigator>
   );
