@@ -10,6 +10,7 @@ import { RootTabParamList } from "./src/navigation/types";
 import { useAuthStore } from "./src/features/auth/store";
 import { useNotificationsStore } from "./src/features/notifications/store";
 import { NotificationToast } from "./src/features/notifications/NotificationToast";
+import { encerrarTelaDeAbertura } from "./src/lib/telaDeAbertura";
 import { colors } from "./src/constants/theme";
 
 export default function App() {
@@ -20,6 +21,13 @@ export default function App() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // A marca sai de cena quando há uma tela de verdade para mostrar — não
+  // antes: enquanto o token está sendo lido, o que existe é um indicador de
+  // carregando, e trocar a abertura por ele não melhora nada.
+  useEffect(() => {
+    if (authStatus !== "hydrating") encerrarTelaDeAbertura();
+  }, [authStatus]);
 
   // As notificações in-app só existem para um usuário logado: o polling liga
   // ao autenticar e desliga (limpando o estado) ao sair, pra não vazar aviso

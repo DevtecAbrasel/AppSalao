@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
 import { Icon } from "../../components/Icon";
+import { LogoSalao } from "../../components/LogoSalao";
 import { AuthStackParamList } from "../../navigation/types";
 import { useAuthStore } from "./store";
 
@@ -53,7 +54,8 @@ export function SignupScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <LinearGradient colors={gradients.cinematic} style={styles.hero}>
-        <Text style={styles.eyebrow}>Salão Abrasel · 2026</Text>
+        <LogoSalao width={180} />
+        <Text style={styles.eyebrow}>Edição 2026</Text>
         <Text style={styles.title}>Criar Conta</Text>
         <Text style={styles.subtitle}>
           Salve seus favoritos e receba notificações das palestras que escolher.
@@ -138,6 +140,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     ...typography.label,
     color: colors.rosa,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   title: {
