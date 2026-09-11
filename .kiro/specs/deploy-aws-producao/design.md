@@ -184,8 +184,11 @@ Diferenças em relação ao template original do design:
 - **Não há bloco de redirect HTTP→HTTPS neste arquivo.** O servidor já possui um bloco catch-all/wildcard existente (certificado wildcard `abrasel.xyz`) que trata esse redirect para todos os subdomínios, incluindo `appsalao.abrasel.xyz`. Duplicar o redirect aqui seria redundante e é evitado.
 - **Certificado incluído via snippet compartilhado** (`include /etc/nginx/certs/abrasel.xyz.conf;`), em vez de `ssl_certificate`/`ssl_certificate_key` diretos — já é o padrão do servidor para o certificado wildcard.
 - **`location /api/`** encaminha para a API com `proxy_pass http://127.0.0.1:3333/` — a barra final é o que faz o Nginx remover o prefixo `/api` antes de repassar a requisição (atende ao Requisito 2.1 e 8, já que a API não possui esse prefixo em suas rotas reais).
+- **`location /api/events` (novo, cache de leitura)**: adicionado para lidar com o volume esperado do evento (milhares de pessoas consultando a agenda ao mesmo tempo, numa VM_Producao de 1 vCPU). Cacheia por 30s as respostas de `GET /events` e `GET /events/:id`, que são as rotas mais lidas de toda a API e mudam raramente (só quando um ADMIN edita a programação). Como o Nginx só cacheia GET/HEAD por padrão, as rotas de escrita (POST/PUT/DELETE, usadas só pelo ADMIN) continuam indo direto para a API. A chave de cache inclui o header `x-api-key` para não servir uma resposta cacheada de volta para quem não apresentou a chave correta, preservando o efeito da checagem feita pelo middleware `requireAppKey`. Por ser um prefixo mais específico que `/api/`, precisa vir declarado antes dele no arquivo.
 - **`location /`** serve os arquivos estáticos do App_Web a partir da Pasta_De_Build_Do_App_Web (`/var/www/AppSalao/app/dist`), com fallback de SPA via `try_files` (atende ao Requisito 8.1–8.2).
-- Nginx escolhe o `location` pelo prefixo mais específico (mais longo), então tecnicamente a ordem dos blocos no arquivo não afeta o roteamento — `/api/` sempre tem precedência sobre `/` para requisições que começam com `/api/`. Ainda assim, o arquivo mantém `location /api/` declarado antes de `location /` por clareza de leitura.
+- Nginx escolhe o `location` pelo prefixo mais específico (mais longo), então tecnicamente a ordem dos blocos no arquivo não afeta o roteamento — `/api/events` e `/api/` sempre têm precedência sobre `/` para requisições que começam com esses prefixos. Ainda assim, o arquivo mantém os blocos mais específicos declarados antes de `location /` por clareza de leitura.
+
+**Pré-requisito de infraestrutura (fora do arquivo do site, feito uma vez só)**: a diretiva `proxy_cache_path`, que declara a zona de cache `appsalao_events_cache` usada pelo bloco `/api/events`, só pode existir no contexto `http {}` do Nginx (nunca dentro de um `server {}`), então precisa ser adicionada ao `nginx.conf` principal ou a um arquivo em `/etc/nginx/conf.d/` incluído por ele — não ao arquivo `sites-available/appsalao.abrasel.xyz`. Sem isso, `nginx -t` falha com "zone not found". Ver passo 1️⃣ 7 do Fluxo de Deploy Operacional.
 
 ```nginx
 server {
@@ -206,9 +209,30 @@ server {
 
     client_max_body_size 1m;
 
+    # Cache de GET /events e /events/:id (ver zona appsalao_events_cache
+    # declarada no http{} global — passo 1️⃣ 7). Precedência sobre
+    # location /api/ por ser o prefixo mais específico.
+    location /api/events {
+        proxy_cache appsalao_events_cache;
+        proxy_cache_key "$scheme$request_method$host$request_uri$http_x_api_key";
+        proxy_cache_valid 200 30s;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_background_update on;
+        proxy_cache_lock on;
+        add_header X-Cache-Status $upstream_cache_status always;
+
+        proxy_pass http://127.0.0.1:3333/events;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Requisições /api/* -> container Docker da API (prefixo removido pela
     # barra final em proxy_pass). Precedência sobre location / por ser o
-    # prefixo mais específico.
+    # prefixo mais específico. Não cacheado: cobre rotas por usuário
+    # (favoritos, notificações, /auth/me).
     location /api/ {
         proxy_pass http://127.0.0.1:3333/;
         proxy_http_version 1.1;
@@ -228,7 +252,7 @@ server {
 }
 ```
 
-Isso atende ao Requisito 2.1 (preserva método, corpo e cabeçalhos de host/protocolo), 2.3 (redirect HTTP→HTTPS, já coberto pelo bloco catch-all existente), 8.1 e 8.2 (App_Web servido na raiz com fallback de SPA). O redirect HTTP→HTTPS (Requisito 2.3) é responsabilidade do bloco wildcard já existente no servidor, não deste arquivo.
+Isso atende ao Requisito 2.1 (preserva método, corpo e cabeçalhos de host/protocolo), 2.3 (redirect HTTP→HTTPS, já coberto pelo bloco catch-all existente), 8.1 e 8.2 (App_Web servido na raiz com fallback de SPA). O redirect HTTP→HTTPS (Requisito 2.3) é responsabilidade do bloco wildcard já existente no servidor, não deste arquivo. O cache de `/api/events` é uma otimização de capacidade para o volume esperado do evento (ver seção de Performance/Capacidade), não um requisito funcional original desta spec.
 
 ### 6. Banco de dados e usuário dedicados (comandos reais, incluindo permissões de schema)
 
@@ -399,6 +423,19 @@ Esperado: resposta HTTP de sucesso em poucos segundos.
 ### 1️⃣ 7. Configurar e recarregar o Nginx_Existente (apenas quando o bloco ainda não existir ou precisar de ajuste)
 
 ```bash
+# Declarar a zona de cache usada por location /api/events. Precisa estar no
+# contexto http{} do Nginx, não dentro de um server{} — por isso vai num
+# arquivo próprio em conf.d/, incluído automaticamente pelo nginx.conf
+# principal na maioria das instalações (confirmar com
+# `grep -n "include" /etc/nginx/nginx.conf` se não tiver certeza).
+#
+# keys_zone=appsalao_events_cache:10m reserva 10MB de memória só para as
+# CHAVES do cache (não o conteúdo em si) — suficiente para milhares de
+# entradas dado o tamanho da agenda de um evento. max_size=100m limita o
+# espaço em disco ocupado pelo conteúdo cacheado, relevante numa VM com 4GB
+# de RAM. inactive=10m remove do cache o que não é acessado por 10 minutos.
+echo 'proxy_cache_path /var/cache/nginx/appsalao_events levels=1:2 keys_zone=appsalao_events_cache:10m max_size=100m inactive=10m use_temp_path=off;' | sudo tee /etc/nginx/conf.d/appsalao-events-cache.conf
+
 # Copiar/adaptar o template versionado para sites-available e habilitar via symlink
 sudo cp /var/www/AppSalao/deploy/nginx/appsalao.abrasel.xyz.conf /etc/nginx/sites-available/appsalao.abrasel.xyz
 sudo ln -s /etc/nginx/sites-available/appsalao.abrasel.xyz /etc/nginx/sites-enabled/appsalao.abrasel.xyz
@@ -408,6 +445,16 @@ sudo nginx -t
 
 # Só recarregar se o teste acima passar sem erros
 sudo systemctl reload nginx
+```
+
+Validação do cache (opcional, após o reload):
+
+```bash
+# A primeira requisição é MISS (busca na API); a segunda, dentro de 30s, deve
+# ser HIT (servida pelo Nginx sem tocar no container). Observar o header
+# X-Cache-Status na resposta.
+curl -sI https://appsalao.abrasel.xyz/api/events | grep -i x-cache-status
+curl -sI https://appsalao.abrasel.xyz/api/events | grep -i x-cache-status
 ```
 
 ### 🔁 8. Validar via domínio público

@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { asyncHandler } from "../lib/asyncHandler";
 import { ApiError } from "../lib/ApiError";
 import { requireAuth } from "../middleware/auth";
+import { authRateLimiter } from "../middleware/rateLimit";
 import { authBodySchema, resetPasswordBodySchema } from "../schemas/auth";
 import { hashPassword, signToken, verifyPassword } from "../lib/auth";
 
@@ -10,6 +11,7 @@ export const authRouter = Router();
 
 authRouter.post(
   "/auth/register",
+  authRateLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = authBodySchema.parse(req.body);
 
@@ -30,6 +32,7 @@ authRouter.post(
 
 authRouter.post(
   "/auth/login",
+  authRateLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = authBodySchema.parse(req.body);
 
@@ -60,8 +63,13 @@ authRouter.post(
 // A única exceção são as contas ADMIN, que editam a programação do evento
 // inteiro: para elas a troca aberta seria um convite. Continuam sendo
 // alteradas pelo script `admin:create`.
+//
+// O rate limit abaixo é a única barreira contra alguém varrendo e-mails
+// tentando descobrir quais existem (a resposta 404 já não diferencia por
+// tempo, mas sem limite de tentativas essa varredura seria de graça).
 authRouter.post(
   "/auth/reset-password",
+  authRateLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = resetPasswordBodySchema.parse(req.body);
 

@@ -67,16 +67,35 @@ export function mostSpecificDueOffset(minutesUntilStart: number): number | null 
   return vencidos.length === 0 ? null : Math.min(...vencidos);
 }
 
+const MAX_OFFSET_MINUTES = Math.max(...REMINDER_OFFSETS_MINUTES);
+
 // Roda a cada minuto (ver index.ts): procura favoritos cujo evento já entrou
 // num intervalo de aviso e cria a notificação in-app. Cada combinação
 // (usuário, evento, intervalo) só existe uma vez, garantido pela constraint
 // única de Notification — é o próprio create que falha que impede o aviso
 // repetido, sem precisar consultar antes.
+//
+// O filtro por `event.startTime` abaixo é o que mantém essa varredura barata
+// à medida que o número de favoritos acumulados no evento crescer (com
+// milhares de pessoas no Salão Abrasel, a tabela de favoritos cresce rápido,
+// mas a esmagadora maioria aponta para palestras que já passaram ou que
+// ainda estão a mais de 24h — nenhuma delas precisa ser revisitada a cada
+// minuto). Sem esse filtro, o `findMany` varreria a tabela inteira uma vez
+// por minuto, competindo por CPU/conexão de banco com as requisições HTTP
+// no mesmo processo, justamente no horário de pico de uso do app.
 export async function checkAndCreateEventReminders(): Promise<number> {
   const now = Date.now();
   let created = 0;
 
   const favorites = await prisma.userFavorite.findMany({
+    where: {
+      event: {
+        startTime: {
+          gt: new Date(now),
+          lte: new Date(now + MAX_OFFSET_MINUTES * 60_000),
+        },
+      },
+    },
     include: { event: true },
   });
 

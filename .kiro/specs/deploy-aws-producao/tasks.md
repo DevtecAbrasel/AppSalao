@@ -17,7 +17,7 @@ Esta spec é exclusivamente de infraestrutura de deploy: nenhuma lógica de neg�
   - Adicionar `EXPOSE 3333` como documentação da porta interna
   - _Requisito: 1.4_
 
-- [~] 3. Checkpoint - Ensure all tests pass
+- [ ] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 4. Criar `api/docker-compose.prod.yml`
@@ -40,43 +40,43 @@ Esta spec é exclusivamente de infraestrutura de deploy: nenhuma lógica de neg�
   - Incluir comentário indicando que os diretivas de certificado (`ssl_certificate`/`ssl_certificate_key`) já existem no Nginx_Existente e devem ser mantidas, não recriadas
   - _Requisito: 2.1, 2.2, 2.3_
 
-- [~] 7. Checkpoint - Ensure all tests pass
+- [ ] 7. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Criar documentação operacional `DEPLOY.md` (na raiz do repositório ou em `api/DEPLOY.md`)
-  - [~] 8.1 Documentar a preparação inicial (apenas primeira implantação)
+  - [ ] 8.1 Documentar a preparação inicial (apenas primeira implantação)
     - Passos de `git clone`/posicionamento em `/opt/salao-abrasel-api`, criação de `.env.production` a partir do `.env.production.example` com `chmod 600`
     - _Requisito: 3.1, 3.4, 5.1_
-  - [~] 8.2 Documentar a criação do Banco_De_Producao e usuário dedicado
+  - [ ] 8.2 Documentar a criação do Banco_De_Producao e usuário dedicado
     - Comandos SQL via `psql` (`CREATE DATABASE`, `CREATE USER`, `GRANT ALL PRIVILEGES`) executados na instância PostgreSQL já existente, e atualização de `DATABASE_URL` em `.env.production`
     - _Requisito: 4.1_
-  - [~] 8.3 Documentar build da imagem e aplicação de migrations
+  - [ ] 8.3 Documentar build da imagem e aplicação de migrations
     - Comando `docker compose -f docker-compose.prod.yml build`
     - Aviso de backup completo do Banco_De_Producao (ex.: `pg_dump`) antes de migrar
     - Comando `docker compose -f docker-compose.prod.yml run --rm --env-file .env.production api npx prisma migrate deploy`, com instrução de não avançar para o próximo passo se o código de saída for diferente de zero
     - _Requisito: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
-  - [~] 8.4 Documentar subida/atualização do container e verificação local
+  - [ ] 8.4 Documentar subida/atualização do container e verificação local
     - Comando `docker compose -f docker-compose.prod.yml up -d`
     - Verificação local com `curl -i http://127.0.0.1:3333/health`
     - _Requisito: 1.1, 1.2, 1.3, 5.2, 6.1_
-  - [~] 8.5 Documentar configuração e recarga do Nginx_Existente
+  - [ ] 8.5 Documentar configuração e recarga do Nginx_Existente
     - Edição do server block existente para incluir o bloco `location` de `proxy_pass` (referenciando o template criado na tarefa 6)
     - Comando `sudo nginx -t` obrigatório antes de `sudo systemctl reload nginx`, com instrução de só recarregar se o teste passar
     - Verificação via domínio público com `curl -i https://appsalao.abrasel.xyz/health`
     - _Requisito: 2.4, 2.5, 2.6, 5.3, 6.1_
-  - [~] 8.6 Documentar o resumo do fluxo repetível de deploy (deploys subsequentes)
+  - [ ] 8.6 Documentar o resumo do fluxo repetível de deploy (deploys subsequentes)
     - Sequência consolidada: `git pull`, build da imagem, backup do banco, `prisma migrate deploy`, `up -d`, verificação local e via domínio
     - _Requisito: 5.1, 5.2, 5.3_
-  - [~] 8.7 Documentar a Estratégia de Rollback
+  - [ ] 8.7 Documentar a Estratégia de Rollback
     - Retag da imagem atual como `salao-abrasel-api:previous` antes de reconstruir
     - Procedimento de rollback (`down`, retag `previous` para `latest`, `up -d`) em caso de falha em qualquer etapa
     - Nota sobre o backup do passo 8.3 ser o mecanismo de recuperação do banco em caso de falha de migration
     - _Requisito: 5.4, 4.6, 4.7, 4.8_
-  - [~] 8.8 Documentar diagnóstico e observabilidade
+  - [ ] 8.8 Documentar diagnóstico e observabilidade
     - Comandos `docker ps`, `docker inspect salao-abrasel-api`, `docker logs salao-abrasel-api` e `docker events` para diagnosticar crash loops, causas de reinício e consultar logs
     - _Requisito: 6.2, 6.3, 6.4_
 
-- [~] 9. Checkpoint - Ensure all tests pass
+- [ ] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 10. Smoke test local do build da imagem Docker
@@ -85,7 +85,7 @@ Esta spec é exclusivamente de infraestrutura de deploy: nenhuma lógica de neg�
   - Não requer acesso à VM_Producao real; o deploy no servidor AWS é executado manualmente pelo usuário fora deste fluxo
   - _Requisito: 1.4, 5.1_
 
-- [~] 11. Final checkpoint - Ensure all tests pass
+- [ ] 11. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
