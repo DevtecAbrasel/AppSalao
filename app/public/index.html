@@ -114,6 +114,12 @@
       // tem uma tela de verdade para mostrar. Isto aqui é só a rede de
       // segurança: se o bundle não carregar, a marca não pode ficar para
       // sempre na frente do <noscript> e de qualquer erro na tela.
+      //
+      // 20s e não 12s: medido, o app leva ~10s para abrir num link de
+      // demonstração por túnel, e no 4G de um centro de eventos pode levar
+      // mais. Com 12s a rede de segurança disparava em cima de um
+      // carregamento que ia dar certo, devolvendo justamente o branco que ela
+      // existe para evitar. Este número é o "desistiu", não o "demorou".
       setTimeout(function () {
         var abertura = document.getElementById("abertura");
         if (!abertura || abertura.classList.contains("saindo")) return;
@@ -121,7 +127,7 @@
         setTimeout(function () {
           if (abertura.parentNode) abertura.parentNode.removeChild(abertura);
         }, 400);
-      }, 12000);
+      }, 20000);
     </script>
 
     <script>
