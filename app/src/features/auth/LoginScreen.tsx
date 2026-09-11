@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { colors, gradients, radius, spacing, typography } from "../../constants/theme";
 import { Icon } from "../../components/Icon";
+import { LogoSalao } from "../../components/LogoSalao";
 import { AuthStackParamList } from "../../navigation/types";
 import { useAuthStore } from "./store";
 
@@ -46,7 +47,8 @@ export function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <LinearGradient colors={gradients.cinematic} style={styles.hero}>
-        <Text style={styles.eyebrow}>Salão Abrasel · 2026</Text>
+        <LogoSalao width={180} />
+        <Text style={styles.eyebrow}>Edição 2026</Text>
         <Text style={styles.title}>Aberto{"\n"}Para O Futuro</Text>
         <Text style={styles.subtitle}>Entre para ver e favoritar a programação</Text>
       </LinearGradient>
@@ -99,6 +101,17 @@ export function LoginScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
+          {/* Logo abaixo do campo de senha, que é onde a pessoa descobre que
+              não lembra dela — e não no fim da tela, depois do botão de criar
+              conta. */}
+          <Pressable
+            onPress={() => navigation.navigate("ForgotPassword")}
+            style={styles.esqueciWrapper}
+            hitSlop={6}
+          >
+            <Text style={styles.esqueci}>Esqueci minha senha</Text>
+          </Pressable>
+
           {error && <Text style={styles.error}>{error}</Text>}
         </View>
 
@@ -135,6 +148,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     ...typography.label,
     color: colors.rosa,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   title: {
@@ -201,6 +215,15 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  esqueciWrapper: {
+    alignSelf: "flex-start",
+    marginTop: spacing.sm,
+  },
+  esqueci: {
+    color: colors.primary,
+    fontSize: 13.5,
+    fontWeight: "700",
   },
   error: {
     color: colors.live,

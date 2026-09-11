@@ -27,4 +27,10 @@ export class ApiError extends Error {
   static conflict(message: string) {
     return new ApiError(409, message);
   }
+
+  // 503 = o pedido está certo, mas este recurso do servidor não está de pé
+  // agora (recurso opcional sem configuração, dependência externa fora do ar).
+  static serviceUnavailable(message: string) {
+    return new ApiError(503, message);
+  }
 }

@@ -15,34 +15,26 @@ import { colors, gradients, radius, spacing, typography } from "../../constants/
 import { Icon } from "../../components/Icon";
 import { LogoSalao } from "../../components/LogoSalao";
 import { AuthStackParamList } from "../../navigation/types";
-import { useAuthStore } from "./store";
+import { forgotPassword } from "./api";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Signup">;
+type Props = NativeStackScreenProps<AuthStackParamList, "ForgotPassword">;
 
-const MIN_PASSWORD_LENGTH = 8;
-
-export function SignupScreen({ navigation }: Props) {
-  const register = useAuthStore((s) => s.register);
+export function ForgotPasswordScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  // Aqui o "mostrar senha" pesa ainda mais que no login: é uma senha sendo
-  // criada, com mínimo de caracteres, e não há campo de confirmação.
-  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Quando chega, é a frase do servidor — que é a mesma exista ou não a
+  // conta, de propósito.
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres`);
-      return;
-    }
-
     setError(null);
     setSubmitting(true);
     try {
-      await register(email.trim(), password);
+      const { message } = await forgotPassword(email.trim());
+      setAviso(message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao criar conta");
+      setError(err instanceof Error ? err.message : "Não foi possível enviar o link");
     } finally {
       setSubmitting(false);
     }
@@ -56,71 +48,65 @@ export function SignupScreen({ navigation }: Props) {
       <LinearGradient colors={gradients.cinematic} style={styles.hero}>
         <LogoSalao width={180} />
         <Text style={styles.eyebrow}>Edição 2026</Text>
-        <Text style={styles.title}>Criar Conta</Text>
+        <Text style={styles.title}>Esqueci{"\n"}Minha Senha</Text>
         <Text style={styles.subtitle}>
-          Salve seus favoritos e receba notificações das palestras que escolher.
+          Informe o e-mail da sua conta e enviamos um link para você escolher uma
+          nova senha.
         </Text>
       </LinearGradient>
 
       <View style={styles.corpo}>
-        <View style={styles.form}>
-          <Text style={styles.campoLabel}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="voce@exemplo.com"
-            placeholderTextColor={colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            keyboardType="email-address"
-            returnKeyType="next"
-          />
-
-          <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
-          <View style={styles.senhaWrapper}>
+        {aviso ? (
+          // Estado de "pronto, confira a caixa de entrada". O formulário sai
+          // de cena: deixá-lo ali convidaria a mandar o mesmo pedido de novo
+          // achando que o primeiro não funcionou.
+          <View style={styles.form}>
+            <View style={styles.confirmacao}>
+              <Icon name="mail" size={22} color={colors.primary} />
+              <Text style={styles.confirmacaoTexto}>{aviso}</Text>
+            </View>
+            <Text style={styles.dica}>
+              O link vale por 1 hora. Se não aparecer em alguns minutos, verifique
+              o spam ou tente outro e-mail.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.form}>
+            <Text style={styles.campoLabel}>E-mail</Text>
             <TextInput
-              style={styles.senhaInput}
-              placeholder={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres`}
+              style={styles.input}
+              placeholder="voce@exemplo.com"
               placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!senhaVisivel}
+              value={email}
+              onChangeText={setEmail}
               autoCapitalize="none"
               autoCorrect={false}
-              autoComplete="new-password"
+              autoComplete="email"
+              keyboardType="email-address"
               returnKeyType="go"
               onSubmitEditing={handleSubmit}
             />
-            <Pressable
-              onPress={() => setSenhaVisivel((v) => !v)}
-              style={styles.olhoBotao}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
-            >
-              <Icon name={senhaVisivel ? "eye-off" : "eye"} size={20} color={colors.textMuted} />
-            </Pressable>
+
+            {error && <Text style={styles.error}>{error}</Text>}
           </View>
+        )}
 
-          {error && <Text style={styles.error}>{error}</Text>}
-        </View>
-
-        <Pressable
-          style={[styles.button, submitting && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting || !email || !password}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Criar conta</Text>
-          )}
-        </Pressable>
+        {!aviso && (
+          <Pressable
+            style={[styles.button, submitting && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={submitting || !email}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Enviar link</Text>
+            )}
+          </Pressable>
+        )}
 
         <Pressable onPress={() => navigation.navigate("Login")} style={styles.linkWrapper}>
-          <Text style={styles.link}>Já tem conta? Entrar</Text>
+          <Text style={styles.link}>Voltar para entrar</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -151,11 +137,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+    lineHeight: 20,
     color: colors.azulClaro,
     marginTop: spacing.md,
   },
-  // Mesmas medidas do login (ver LoginScreen): as duas telas são a mesma
-  // porta de entrada e trocar de uma para a outra não pode mexer no layout.
   corpo: {
     width: "100%",
     maxWidth: 440,
@@ -170,9 +155,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing.xs,
   },
-  campoLabelSegundo: {
-    marginTop: spacing.md,
-  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -183,31 +165,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
-  senhaWrapper: {
+  confirmacao: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    padding: spacing.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingRight: spacing.xs,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
   },
-  senhaInput: {
+  confirmacaoTexto: {
     flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    fontSize: 15,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: colors.text,
   },
-  olhoBotao: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+  dica: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textMuted,
+    marginTop: spacing.md,
   },
   error: {
     color: colors.live,
     fontSize: 13,
+    lineHeight: 19,
     marginTop: spacing.sm,
   },
   button: {

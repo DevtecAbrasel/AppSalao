@@ -17,16 +17,17 @@ import { LogoSalao } from "../../components/LogoSalao";
 import { AuthStackParamList } from "../../navigation/types";
 import { useAuthStore } from "./store";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Signup">;
+type Props = NativeStackScreenProps<AuthStackParamList, "ResetPassword">;
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export function SignupScreen({ navigation }: Props) {
-  const register = useAuthStore((s) => s.register);
-  const [email, setEmail] = useState("");
+// Tela aberta pelo link do e-mail. Não há caminho para ela dentro do app: sem
+// o token na URL, a pilha de entrada nem a mostra.
+export function ResetPasswordScreen({ navigation, route }: Props) {
+  const { token } = route.params;
+  const resetPassword = useAuthStore((s) => s.resetPassword);
+  const descartarRecuperacao = useAuthStore((s) => s.descartarRecuperacao);
   const [password, setPassword] = useState("");
-  // Aqui o "mostrar senha" pesa ainda mais que no login: é uma senha sendo
-  // criada, com mínimo de caracteres, e não há campo de confirmação.
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +41,20 @@ export function SignupScreen({ navigation }: Props) {
     setError(null);
     setSubmitting(true);
     try {
-      await register(email.trim(), password);
+      // Deu certo, a store já limpa o link do endereço e entra na conta — o
+      // App troca sozinho para o app logado.
+      await resetPassword(token, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao criar conta");
-    } finally {
+      setError(err instanceof Error ? err.message : "Falha ao redefinir a senha");
       setSubmitting(false);
     }
+  };
+
+  const voltarParaLogin = () => {
+    // Descarta o link: deixá-lo no endereço faria esta tela voltar sozinha no
+    // próximo carregamento, e prenderia aqui quem já tinha sessão aberta.
+    descartarRecuperacao();
+    navigation.navigate("Login");
   };
 
   return (
@@ -56,29 +65,15 @@ export function SignupScreen({ navigation }: Props) {
       <LinearGradient colors={gradients.cinematic} style={styles.hero}>
         <LogoSalao width={180} />
         <Text style={styles.eyebrow}>Edição 2026</Text>
-        <Text style={styles.title}>Criar Conta</Text>
+        <Text style={styles.title}>Nova Senha</Text>
         <Text style={styles.subtitle}>
-          Salve seus favoritos e receba notificações das palestras que escolher.
+          Escolha a senha que você vai usar para entrar no app do evento.
         </Text>
       </LinearGradient>
 
       <View style={styles.corpo}>
         <View style={styles.form}>
-          <Text style={styles.campoLabel}>E-mail</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="voce@exemplo.com"
-            placeholderTextColor={colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            keyboardType="email-address"
-            returnKeyType="next"
-          />
-
-          <Text style={[styles.campoLabel, styles.campoLabelSegundo]}>Senha</Text>
+          <Text style={styles.campoLabel}>Nova senha</Text>
           <View style={styles.senhaWrapper}>
             <TextInput
               style={styles.senhaInput}
@@ -93,6 +88,9 @@ export function SignupScreen({ navigation }: Props) {
               returnKeyType="go"
               onSubmitEditing={handleSubmit}
             />
+            {/* Sem campo de confirmação: com o olho, a pessoa confere o que
+                digitou, que é o mesmo que a confirmação garante — e é o
+                arranjo que a tela de criar conta já usa. */}
             <Pressable
               onPress={() => setSenhaVisivel((v) => !v)}
               style={styles.olhoBotao}
@@ -104,23 +102,27 @@ export function SignupScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {error && (
+            <View style={styles.erroBloco}>
+              <Text style={styles.error}>{error}</Text>
+            </View>
+          )}
         </View>
 
         <Pressable
           style={[styles.button, submitting && styles.buttonDisabled]}
           onPress={handleSubmit}
-          disabled={submitting || !email || !password}
+          disabled={submitting || !password}
         >
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Criar conta</Text>
+            <Text style={styles.buttonText}>Salvar e entrar</Text>
           )}
         </Pressable>
 
-        <Pressable onPress={() => navigation.navigate("Login")} style={styles.linkWrapper}>
-          <Text style={styles.link}>Já tem conta? Entrar</Text>
+        <Pressable onPress={voltarParaLogin} style={styles.linkWrapper}>
+          <Text style={styles.link}>Voltar para entrar</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -151,11 +153,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+    lineHeight: 20,
     color: colors.azulClaro,
     marginTop: spacing.md,
   },
-  // Mesmas medidas do login (ver LoginScreen): as duas telas são a mesma
-  // porta de entrada e trocar de uma para a outra não pode mexer no layout.
   corpo: {
     width: "100%",
     maxWidth: 440,
@@ -169,19 +170,6 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textMuted,
     marginBottom: spacing.xs,
-  },
-  campoLabelSegundo: {
-    marginTop: spacing.md,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    fontSize: 15,
-    color: colors.text,
   },
   senhaWrapper: {
     flexDirection: "row",
@@ -205,10 +193,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  erroBloco: {
+    marginTop: spacing.sm,
+  },
   error: {
     color: colors.live,
     fontSize: 13,
-    marginTop: spacing.sm,
+    lineHeight: 19,
   },
   button: {
     backgroundColor: colors.primary,

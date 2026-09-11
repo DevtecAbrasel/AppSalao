@@ -10,16 +10,28 @@ import { RootTabParamList } from "./src/navigation/types";
 import { useAuthStore } from "./src/features/auth/store";
 import { useNotificationsStore } from "./src/features/notifications/store";
 import { NotificationToast } from "./src/features/notifications/NotificationToast";
+import { encerrarTelaDeAbertura } from "./src/lib/telaDeAbertura";
 import { colors } from "./src/constants/theme";
 
 export default function App() {
   const navigationRef = useRef<NavigationContainerRef<RootTabParamList>>(null);
   const authStatus = useAuthStore((s) => s.status);
   const hydrate = useAuthStore((s) => s.hydrate);
+  // Aberto por um link de recuperação, o app mostra a pilha de entrada mesmo
+  // para quem já tem sessão: a pessoa pediu para trocar a senha, e entrar
+  // direto no app ignoraria o pedido.
+  const recuperandoSenha = useAuthStore((s) => s.recoveryToken !== null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // A marca sai de cena quando há uma tela de verdade para mostrar — não
+  // antes: enquanto o token está sendo lido, o que existe é um indicador de
+  // carregando, e trocar a abertura por ele não melhora nada.
+  useEffect(() => {
+    if (authStatus !== "hydrating") encerrarTelaDeAbertura();
+  }, [authStatus]);
 
   // As notificações in-app só existem para um usuário logado: o polling liga
   // ao autenticar e desliga (limpando o estado) ao sair, pra não vazar aviso
@@ -48,12 +60,16 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer ref={navigationRef}>
-          {authStatus === "authenticated" ? <RootTabs /> : <AuthStackNavigator />}
+          {authStatus === "authenticated" && !recuperandoSenha ? (
+            <RootTabs />
+          ) : (
+            <AuthStackNavigator />
+          )}
         </NavigationContainer>
 
         {/* Fora do NavigationContainer, mas por cima dele: o toast flutua
             sobre qualquer tela sem entrar na pilha de navegação. */}
-        {authStatus === "authenticated" && (
+        {authStatus === "authenticated" && !recuperandoSenha && (
           <NotificationToast
             onOpenEvent={(eventId) =>
               navigationRef.current?.navigate("Agenda", {
