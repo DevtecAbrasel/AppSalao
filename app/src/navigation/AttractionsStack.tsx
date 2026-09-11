@@ -1,13 +1,14 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ExpositoresScreen } from "../features/exhibitors/ExpositoresScreen";
+import { AtracoesScreen } from "../features/attractions/AtracoesScreen";
+import { ConsultoriasScreen } from "../features/consulting/ConsultoriasScreen";
 import { NotificationsScreen } from "../features/notifications/NotificationsScreen";
 import { HeaderActions } from "./HeaderActions";
 import { colors } from "../constants/theme";
-import { ExhibitorsStackParamList } from "./types";
+import { AttractionsStackParamList } from "./types";
 
-const Stack = createNativeStackNavigator<ExhibitorsStackParamList>();
+const Stack = createNativeStackNavigator<AttractionsStackParamList>();
 
-export function ExhibitorsStackNavigator() {
+export function AttractionsStackNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -16,17 +17,20 @@ export function ExhibitorsStackNavigator() {
       }}
     >
       <Stack.Screen
-        name="ExhibitorsList"
-        component={ExpositoresScreen}
+        name="AtracoesList"
+        component={AtracoesScreen}
         options={({ navigation }) => ({
-          title: "Expositores",
+          title: "+ Atrações",
           headerRight: () => <HeaderActions navigation={navigation} />,
         })}
       />
-      {/* Registradas aqui pelo mesmo motivo dos outros stacks: o cabeçalho
-          desta aba mostra o sino e o botão de consultorias, e sem as rotas o
-          toque abriria a tela na aba Agenda, trocando a aba por baixo de quem
-          estava consultando os expositores. */}
+      {/* A consultoria é uma atração com tela própria: o cartão empilha aqui,
+          dentro da aba, e o "voltar" devolve à lista. */}
+      <Stack.Screen
+        name="Consultorias"
+        component={ConsultoriasScreen}
+        options={{ title: "Orientação com especialistas" }}
+      />
       <Stack.Screen
         name="Notifications"
         component={NotificationsScreen}

@@ -2,7 +2,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AgendaScreen } from "../features/events/AgendaScreen";
 import { EventDetailScreen } from "../features/events/EventDetailScreen";
 import { NotificationsScreen } from "../features/notifications/NotificationsScreen";
-import { ConsultoriasScreen } from "../features/consulting/ConsultoriasScreen";
 import { HeaderActions } from "./HeaderActions";
 import { colors } from "../constants/theme";
 import { AgendaStackParamList } from "./types";
@@ -29,11 +28,6 @@ export function AgendaStackNavigator() {
         name="EventDetail"
         component={EventDetailScreen}
         options={{ title: "Detalhes" }}
-      />
-      <Stack.Screen
-        name="Consultorias"
-        component={ConsultoriasScreen}
-        options={{ title: "Consultorias" }}
       />
       <Stack.Screen
         name="Notifications"
