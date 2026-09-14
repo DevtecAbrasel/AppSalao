@@ -91,11 +91,12 @@ export function enquadrarRegiao(
  * atualizados, basta apagar este mapa e a função abaixo passa a usar o valor
  * do evento sozinha.
  */
-// Cada arena é reconhecida por número OU pelo nome desenhado, porque as duas
-// formas circulam: o banco usa "Arena 2 - Ambev" e o material impresso do
-// evento usa "ARENA SEBRAE", sem número. Aceitar as duas (e o patrocinador
-// antigo) faz a renomeação no painel ser indiferente para o mapa, em qualquer
-// ordem — que é a única maneira de isso não quebrar no meio do caminho.
+// Cada arena é reconhecida por número OU pelo nome desenhado, porque mais de
+// uma forma circula: o banco passou a usar "Arena 2 - Sebrae" e o material
+// impresso do evento usa "ARENA SEBRAE", sem número. O padrão do patrocinador
+// antigo ("ambev") continua aceito de propósito — um banco que ainda não foi
+// renomeado precisa achar o pino do mesmo jeito, e é isso que torna a troca
+// do nome indiferente para o mapa, em qualquer ordem.
 //
 // Todos os padrões exigem que o nome COMECE com "Arena", para não capturar o
 // dígito de um estande qualquer ("Estande 3").
