@@ -13,6 +13,8 @@ import { EventPreviewCard } from "./EventPreviewCard";
 import { PlacePreviewCard } from "./PlacePreviewCard";
 import { Minimap } from "./Minimap";
 import { POINTS_OF_INTEREST } from "./pointsOfInterest";
+import { ESTANDES_COMPARTILHADOS } from "./estandesCompartilhados";
+import { ListaDoCompartilhado } from "./ListaDoCompartilhado";
 import { acharExpositor, temLocalizacao } from "../exhibitors/expositores";
 import {
   computeFitScale,
@@ -61,6 +63,7 @@ type Selection =
   | { kind: "event"; key: string }
   | { kind: "poi"; key: string }
   | { kind: "expositor"; key: string }
+  | { kind: "compartilhado"; key: string }
   | null;
 
 // Quanto aproximar ao chegar pela lista de expositores, em múltiplos da
@@ -330,6 +333,10 @@ export function MapScreen({ route, navigation }: Props) {
     selection?.kind === "poi" ? POINTS_OF_INTEREST.find((p) => p.key === selection.key) : undefined;
   const selectedExpositor =
     selection?.kind === "expositor" ? acharExpositor(selection.key) : undefined;
+  const selectedCompartilhado =
+    selection?.kind === "compartilhado"
+      ? ESTANDES_COMPARTILHADOS.find((e) => e.key === selection.key)
+      : undefined;
 
   // Só o expositor que chegou pela lista ganha pino no mapa. Marcar os 49 de
   // uma vez cobriria a planta de bolinhas e esconderia o desenho que eles
@@ -413,6 +420,25 @@ export function MapScreen({ route, navigation }: Props) {
                     label={poi.marker}
                     sizeMultiplier={1 / (liveView?.scale ?? coverScale)}
                     onPress={() => setSelection({ kind: "poi", key: poi.key })}
+                  />
+                ))}
+              {/* Um pino por estande compartilhado — não um por empresa.
+                  Mesmo desenho e mesma cor dos pontos de interesse, porque
+                  para quem olha o mapa é a mesma categoria de coisa: um lugar
+                  do salão que se pode tocar para saber o que é. */}
+              {mostrarPinos &&
+                ESTANDES_COMPARTILHADOS.map((estande) => (
+                  <PlantaPin
+                    key={`compartilhado-${estande.key}`}
+                    x={estande.x}
+                    y={estande.y}
+                    color={POI_COLOR}
+                    highlighted={
+                      selection?.kind === "compartilhado" && selection.key === estande.key
+                    }
+                    label={estande.marker}
+                    sizeMultiplier={1 / (liveView?.scale ?? coverScale)}
+                    onPress={() => setSelection({ kind: "compartilhado", key: estande.key })}
                   />
                 ))}
               {expositorDestacado && (
@@ -528,6 +554,15 @@ export function MapScreen({ route, navigation }: Props) {
       )}
       {selectedPoi && (
         <PlacePreviewCard label={selectedPoi.label} onClose={() => setSelection(null)} />
+      )}
+      {selectedCompartilhado && (
+        <PlacePreviewCard
+          label="Estande compartilhado"
+          eyebrow={selectedCompartilhado.local}
+          onClose={() => setSelection(null)}
+        >
+          <ListaDoCompartilhado expositores={selectedCompartilhado.expositores} />
+        </PlacePreviewCard>
       )}
     </View>
   );
