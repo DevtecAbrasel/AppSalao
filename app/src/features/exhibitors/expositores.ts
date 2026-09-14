@@ -7,8 +7,9 @@
  *
  * Duas correções vieram depois do impresso, ambas confirmadas pela
  * organização: a Abrasel entrou na lista (o estande dela já estava na planta,
- * só não constava entre os expositores) e o stand desenhado como "Nodus" é da
- * VEM — que estava na lista impressa como um nome sem posição.
+ * só não constava entre os expositores) e o stand impresso como "Nodus" é da
+ * VEM — que estava na lista impressa como um nome sem posição. O rótulo
+ * desenhado na planta foi repintado para VEM junto com esta correção.
  *
  * `x`/`y` são coordenadas NORMALIZADAS (0..1) sobre a mesma planta usada pelo
  * mapa (app/assets/planta-salao-h.png), medidas no centro do stand desenhado.
@@ -108,13 +109,11 @@ export const EXPOSITORES: Expositor[] = [
   { key: "transire", nome: "Transire" },
   { key: "tt-co", nome: "TT & CO", x: 0.699, y: 0.102, nomeNaPlanta: "TT&CO" },
   { key: "unox-brasil", nome: "Unox Brasil", x: 0.83, y: 0.46, nomeNaPlanta: "UNOX" },
-  // O stand desenhado como "Nodus" na planta é a VEM — a organização
-  // confirmou a troca depois que o mapa de bolso foi impresso. Os dois nomes
-  // estavam na lista como entradas separadas (a VEM sem posição); viraram uma
-  // só, com a posição que era do Nodus, para não haver duas VEM na lista.
-  // `nomeNaPlanta` é o que resolve para quem está no salão lendo "Nodus" no
-  // chão e procurando na busca.
-  { key: "vem", nome: "VEM", x: 0.489, y: 0.776, nomeNaPlanta: "Nodus" },
+  // Este stand foi impresso como "Nodus" e é da VEM. Os dois nomes estavam na
+  // lista como entradas separadas (a VEM sem posição); viraram uma só, com a
+  // posição que era do Nodus. O desenho da planta também foi corrigido, então
+  // não há mais `nomeNaPlanta` a declarar: o mapa e a lista dizem VEM.
+  { key: "vem", nome: "VEM", x: 0.489, y: 0.776 },
   { key: "vr", nome: "VR", x: 0.509, y: 0.247 },
   { key: "wyda-embalagens", nome: "Wyda Embalagens", x: 0.676, y: 0.736, nomeNaPlanta: "WYDA" },
 ];
