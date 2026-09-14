@@ -36,11 +36,15 @@ function agrupar(lista: Expositor[]): Secao[] {
     .map(([title, data]) => ({ title, data }));
 }
 
-// Só entram na lista os que dá para levar ao mapa. Os outros 23 continuam
-// registrados em `expositores.ts` — eles existem no evento e a transcrição do
-// impresso está completa lá —, mas um nome que não leva a lugar nenhum não
-// ajuda quem está de pé no salão procurando um stand. No dia em que a planta
-// os posicionar, some este filtro e eles aparecem.
+// Só entram na lista os que dá para levar ao mapa. Sobraram três (Safra, Touk
+// e Transire), que continuam registrados em `expositores.ts` — eles existem no
+// evento e a transcrição do impresso está completa lá —, mas um nome que não
+// leva a lugar nenhum não ajuda quem está de pé no salão procurando um stand.
+// No dia em que a planta os posicionar, some este filtro e eles aparecem.
+//
+// Os moradores dos estandes compartilhados ENTRAM aqui: a posição deles vem do
+// estande, então tocar o nome leva ao mapa como qualquer outro — a diferença é
+// que o "No mapa:" avisa que o letreiro lá diz COMPARTILHADO.
 const ORDENADOS = EXPOSITORES.filter(temLocalizacao).sort((a, b) =>
   normalizarTexto(a.nome).localeCompare(normalizarTexto(b.nome))
 );

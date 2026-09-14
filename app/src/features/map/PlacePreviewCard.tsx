@@ -75,6 +75,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     textTransform: "uppercase",
+    // Mesma folga do título: sem ela uma tarja comprida passa por baixo do
+    // botão de fechar, que é absoluto e não empurra nada.
+    paddingRight: spacing.lg,
   },
   title: {
     fontSize: 16,
