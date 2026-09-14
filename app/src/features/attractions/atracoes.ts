@@ -76,7 +76,36 @@ export interface Atracao {
   imagem?: ImageSourcePropType;
 }
 
+// A ordem desta lista é a ordem na tela, e é editorial: o Restaurante do
+// Futuro vem primeiro por decisão da organização, não por acaso alfabético.
 export const ATRACOES: Atracao[] = [
+  {
+    key: "restaurante-do-futuro",
+    nome: "Restaurante do Futuro",
+    subtitulo: "Cozinha 4.0",
+    resumo:
+      "Um espaço interativo com demonstrações, tecnologias e soluções que estão transformando a cozinha profissional.",
+    chamada:
+      "Faça o seu pré-cadastro e tenha prioridade para conhecer o Restaurante do Futuro - Cozinha 4.0",
+    paragrafos: [
+      "Um espaço interativo com demonstrações, tecnologias e soluções que estão transformando a cozinha profissional.",
+    ],
+    acao: {
+      rotulo: "Pré-cadastro Cozinha 4.0",
+      url: "https://restaurantedofuturo.salaoabrasel.com.br/",
+      icone: "open-in-new",
+      ajudaSeFalhar:
+        "Abra restaurantedofuturo.salaoabrasel.com.br no navegador do seu celular.",
+    },
+    local: "Área de Exposição",
+    onde: "Área de Exposição, no Salão Abrasel",
+    poiKey: "cozinha-futuro",
+    datas: "15 e 16 de setembro",
+    horario: "Das 10h às 18h",
+    icone: "restaurant",
+    acento: colors.laranja,
+    imagem: require("../../../assets/atracoes/restaurante-do-futuro.jpg"),
+  },
   {
     key: "consultorias",
     nome: "Consultorias com especialistas",
@@ -132,33 +161,6 @@ export const ATRACOES: Atracao[] = [
     icone: "chat",
     acento: colors.rosa,
     imagem: require("../../../assets/atracoes/consultorias.jpg"),
-  },
-  {
-    key: "restaurante-do-futuro",
-    nome: "Restaurante do Futuro",
-    subtitulo: "Cozinha 4.0",
-    resumo:
-      "Um espaço interativo com demonstrações, tecnologias e soluções que estão transformando a cozinha profissional.",
-    chamada:
-      "Faça o seu pré-cadastro e tenha prioridade para conhecer o Restaurante do Futuro - Cozinha 4.0",
-    paragrafos: [
-      "Um espaço interativo com demonstrações, tecnologias e soluções que estão transformando a cozinha profissional.",
-    ],
-    acao: {
-      rotulo: "Pré-cadastro Cozinha 4.0",
-      url: "https://restaurantedofuturo.salaoabrasel.com.br/",
-      icone: "open-in-new",
-      ajudaSeFalhar:
-        "Abra restaurantedofuturo.salaoabrasel.com.br no navegador do seu celular.",
-    },
-    local: "Área de Exposição",
-    onde: "Área de Exposição, no Salão Abrasel",
-    poiKey: "cozinha-futuro",
-    datas: "15 e 16 de setembro",
-    horario: "Das 10h às 18h",
-    icone: "restaurant",
-    acento: colors.laranja,
-    imagem: require("../../../assets/atracoes/restaurante-do-futuro.jpg"),
   },
 ];
 

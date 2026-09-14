@@ -3,7 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Programação oficial do Salão Abrasel 2026 (15 e 16/09), Arena 1 - Keeta e
-// Arena 2 - Ambev, extraída da planilha de cronograma fornecida pela equipe.
+// Arena 2 - Sebrae, extraída da planilha de cronograma fornecida pela equipe.
+//
+// A Arena 2 já se chamou "Arena 2 - Ambev": o patrocínio mudou depois que a
+// planilha foi montada. Quem for corrigir um banco já populado NÃO deve rodar
+// este seed de novo — ele usa `create`, então duplicaria os 26 eventos. É um
+// UPDATE na coluna `location_name` (ver a nota na PR que fez esta troca).
 const SCHEDULE_EVENTS = [
   {
     title: "Premiação OQEN",
@@ -106,7 +111,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Premiação Missão Empreendedora.",
     speaker: null,
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T11:30:00-03:00"),
@@ -118,7 +123,7 @@ const SCHEDULE_EVENTS = [
     description:
       "As canetas emagrecedoras vão escrever um novo capítulo no consumo?. Com Antônio Aguiar (Tombé), Alessandra Gaidargi.",
     speaker: "Antônio Aguiar (Tombé), Alessandra Gaidargi",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T12:15:00-03:00"),
@@ -130,7 +135,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Como atrair, gerir e reter talentos num mundo cada vez mais digital. Com Daniel Castello, William Gil.",
     speaker: "Daniel Castello, William Gil",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T13:45:00-03:00"),
@@ -142,7 +147,7 @@ const SCHEDULE_EVENTS = [
     description:
       "IA na prática: como os agentes estão se tornando seus novos colegas de trabalho. Com Matheus Mason, Aline Sordili, Guilherme Junqueira.",
     speaker: "Matheus Mason, Aline Sordili, Guilherme Junqueira",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T16:00:00-03:00"),
@@ -154,7 +159,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Eficiência no delivery: as boas práticas que podem fazer seu negócio decolar. Com Filipe Mello, Bruno Rossini.",
     speaker: "Filipe Mello, Bruno Rossini",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T17:30:00-03:00"),
@@ -166,7 +171,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Gestão inteligente: os dados integrados como base para transformar o seu negócio. Com Fabio Martins, Thiago Falcão, Píndaro Lutero.",
     speaker: "Fabio Martins, Thiago Falcão, Píndaro Lutero",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-15T18:45:00-03:00"),
@@ -250,7 +255,7 @@ const SCHEDULE_EVENTS = [
     description:
       "A alimentação saudável e o uso de produtos locais como tendências de negócio. Com Monica SVB.",
     speaker: "Monica SVB",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T10:30:00-03:00"),
@@ -262,7 +267,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Grandes Compradores: os pulos do gato. Com Diego Senra.",
     speaker: "Diego Senra",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T11:30:00-03:00"),
@@ -274,7 +279,7 @@ const SCHEDULE_EVENTS = [
     description:
       "A nova economia dos criadores: como lidar com influenciadores e (por que não?) tornar-se um deles. Com Carole Crema, Leo Soltz, Bruno Gomes, Felipe Assis.",
     speaker: "Carole Crema, Leo Soltz, Bruno Gomes, Felipe Assis",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T13:00:00-03:00"),
@@ -286,7 +291,7 @@ const SCHEDULE_EVENTS = [
     description:
       "A IA como alavanca na melhoria do seu negócio. Com Google, Sebrae.",
     speaker: "Google, Sebrae",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T14:45:00-03:00"),
@@ -298,7 +303,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Comanda Aberta.",
     speaker: null,
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T16:00:00-03:00"),
@@ -310,7 +315,7 @@ const SCHEDULE_EVENTS = [
     description:
       "Super El Niño e mudanças climáticas: oportunidades e riscos para negócios de alimentação fora do lar. Com Gustavo Bentes, Beatriz Proença.",
     speaker: "Gustavo Bentes, Beatriz Proença",
-    locationName: "Arena 2 - Ambev",
+    locationName: "Arena 2 - Sebrae",
     locationMapX: 0.2596,
     locationMapY: 0.7866,
     startTime: new Date("2026-09-16T17:30:00-03:00"),

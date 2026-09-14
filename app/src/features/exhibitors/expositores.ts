@@ -5,10 +5,15 @@
  * "EXPOSITORES" — 72 nomes, transcritos como impressos. O PDF é vetorizado
  * (nenhum texto extraível), então a lista foi lida da página renderizada.
  *
+ * Duas correções vieram depois do impresso, ambas confirmadas pela
+ * organização: a Abrasel entrou na lista (o estande dela já estava na planta,
+ * só não constava entre os expositores) e o stand desenhado como "Nodus" é da
+ * VEM — que estava na lista impressa como um nome sem posição.
+ *
  * `x`/`y` são coordenadas NORMALIZADAS (0..1) sobre a mesma planta usada pelo
  * mapa (app/assets/planta-salao-h.png), medidas no centro do stand desenhado.
- * Só existem para quem tem stand identificável no desenho: 49 dos 72. Os
- * outros 23 aparecem na lista sem levar ao mapa — o impresso não diz onde
+ * Só existem para quem tem stand identificável no desenho: 50 dos 72. Os
+ * outros 22 aparecem na lista sem levar ao mapa — o impresso não diz onde
  * ficam, e chutar uma posição num mapa de evento é pior que não ter.
  */
 export interface Expositor {
@@ -28,6 +33,12 @@ export interface Expositor {
 
 export const EXPOSITORES: Expositor[] = [
   { key: "99-food", nome: "99 Food", x: 0.196, y: 0.763 },
+  // A casa também expõe. A posição é a MESMA do ponto de interesse
+  // "estande-abrasel" em `pointsOfInterest.ts` — é o estande da Abrasel já
+  // marcado na planta, e repetir a coordenada é de propósito: o mapa esconde
+  // o pino permanente quando o destaque cai em cima dele, então quem chega
+  // pela lista vê um pino só.
+  { key: "abrasel", nome: "Abrasel", x: 0.873, y: 0.461 },
   { key: "alelo", nome: "Alelo", x: 0.55, y: 0.34 },
   { key: "altec", nome: "Altec", x: 0.712, y: 0.102 },
   { key: "ambev", nome: "Ambev", x: 0.305, y: 0.478 },
@@ -69,7 +80,6 @@ export const EXPOSITORES: Expositor[] = [
   { key: "moncoc", nome: "Moncoc" },
   { key: "natural-bot", nome: "Natural Bot" },
   { key: "nayax-brasil", nome: "Nayax Brasil Ltda", x: 0.67, y: 0.102, nomeNaPlanta: "NAYAX" },
-  { key: "nodus", nome: "Nodus", x: 0.489, y: 0.776 },
   { key: "nogueira-brinquedos", nome: "Nogueira Brinquedos", x: 0.155, y: 0.478 },
   { key: "nsf", nome: "NSF" },
   { key: "olaclick", nome: "Olaclick" },
@@ -98,7 +108,13 @@ export const EXPOSITORES: Expositor[] = [
   { key: "transire", nome: "Transire" },
   { key: "tt-co", nome: "TT & CO", x: 0.699, y: 0.102, nomeNaPlanta: "TT&CO" },
   { key: "unox-brasil", nome: "Unox Brasil", x: 0.83, y: 0.46, nomeNaPlanta: "UNOX" },
-  { key: "vem", nome: "VEM" },
+  // O stand desenhado como "Nodus" na planta é a VEM — a organização
+  // confirmou a troca depois que o mapa de bolso foi impresso. Os dois nomes
+  // estavam na lista como entradas separadas (a VEM sem posição); viraram uma
+  // só, com a posição que era do Nodus, para não haver duas VEM na lista.
+  // `nomeNaPlanta` é o que resolve para quem está no salão lendo "Nodus" no
+  // chão e procurando na busca.
+  { key: "vem", nome: "VEM", x: 0.489, y: 0.776, nomeNaPlanta: "Nodus" },
   { key: "vr", nome: "VR", x: 0.509, y: 0.247 },
   { key: "wyda-embalagens", nome: "Wyda Embalagens", x: 0.676, y: 0.736, nomeNaPlanta: "WYDA" },
 ];
