@@ -11,6 +11,7 @@ import { useAuthStore } from "./src/features/auth/store";
 import { useNotificationsStore } from "./src/features/notifications/store";
 import { NotificationToast } from "./src/features/notifications/NotificationToast";
 import { encerrarTelaDeAbertura } from "./src/lib/telaDeAbertura";
+import { useVoltarDoNavegador } from "./src/lib/voltarDoNavegador";
 import { colors } from "./src/constants/theme";
 
 export default function App() {
@@ -21,6 +22,10 @@ export default function App() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // O Voltar do navegador recua uma tela do app, em vez de sair dele. A
+  // função devolvida é chamada pelo NavigationContainer abaixo.
+  const sincronizarVoltar = useVoltarDoNavegador(navigationRef);
 
   // A marca sai de cena quando há uma tela de verdade para mostrar — não
   // antes: enquanto o token está sendo lido, o que existe é um indicador de
@@ -55,7 +60,11 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer
+          ref={navigationRef}
+          onReady={sincronizarVoltar}
+          onStateChange={sincronizarVoltar}
+        >
           {authStatus === "authenticated" ? <RootTabs /> : <AuthStackNavigator />}
         </NavigationContainer>
 
