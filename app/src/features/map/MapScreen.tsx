@@ -345,13 +345,22 @@ export function MapScreen({ route, navigation }: Props) {
   const expositorDestacado =
     selectedExpositor && temLocalizacao(selectedExpositor) ? selectedExpositor : undefined;
 
-  const poisVisiveis = expositorDestacado
-    ? POINTS_OF_INTEREST.filter(
-        (poi) =>
-          Math.abs(poi.x - (expositorDestacado.x as number)) > DISTANCIA_MESMO_PONTO ||
-          Math.abs(poi.y - (expositorDestacado.y as number)) > DISTANCIA_MESMO_PONTO
-      )
-    : POINTS_OF_INTEREST;
+  // O destaque do expositor cai EM CIMA do pino permanente do lugar onde ele
+  // está — o estande da Abrasel, o bloco compartilhado. Dois pinos sobrepostos
+  // no mesmo ponto só confundem, então o permanente cede a vez.
+  const cobertoPeloDestaque = (p: { x: number; y: number }) =>
+    expositorDestacado != null &&
+    Math.abs(p.x - (expositorDestacado.x as number)) <= DISTANCIA_MESMO_PONTO &&
+    Math.abs(p.y - (expositorDestacado.y as number)) <= DISTANCIA_MESMO_PONTO;
+
+  const poisVisiveis = POINTS_OF_INTEREST.filter((poi) => !cobertoPeloDestaque(poi));
+  const compartilhadosVisiveis = ESTANDES_COMPARTILHADOS.filter((e) => !cobertoPeloDestaque(e));
+
+  // De qual estande compartilhado é o expositor destacado, quando é o caso: é
+  // o que o cartão usa para dizer ONDE fica um nome que a planta não escreve.
+  const estandeDoExpositor = selectedExpositor?.estande
+    ? ESTANDES_COMPARTILHADOS.find((e) => e.key === selectedExpositor.estande)
+    : undefined;
 
   // Pinos somem na visão geral: a essa distância eles viram um amontoado que
   // esconde o próprio desenho, e nenhum deles é legível de qualquer forma.
@@ -427,7 +436,7 @@ export function MapScreen({ route, navigation }: Props) {
                   para quem olha o mapa é a mesma categoria de coisa: um lugar
                   do salão que se pode tocar para saber o que é. */}
               {mostrarPinos &&
-                ESTANDES_COMPARTILHADOS.map((estande) => (
+                compartilhadosVisiveis.map((estande) => (
                   <PlantaPin
                     key={`compartilhado-${estande.key}`}
                     x={estande.x}
@@ -548,7 +557,17 @@ export function MapScreen({ route, navigation }: Props) {
       {selectedExpositor && (
         <PlacePreviewCard
           label={selectedExpositor.nome}
-          eyebrow={temLocalizacao(selectedExpositor) ? "Você está vendo" : "Expositor"}
+          // Quem está num estande compartilhado não tem letreiro próprio no
+          // chão do salão: a tarja repete a palavra que ESTÁ escrita no bloco
+          // ("Compartilhado") e diz onde ele fica, senão a pessoa chega ao
+          // pino e procura por um nome que não existe em lugar nenhum.
+          eyebrow={
+            estandeDoExpositor
+              ? `Compartilhado · ${estandeDoExpositor.local}`
+              : temLocalizacao(selectedExpositor)
+                ? "Você está vendo"
+                : "Expositor"
+          }
           onClose={() => setSelection(null)}
         />
       )}
